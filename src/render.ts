@@ -113,7 +113,7 @@ export function playPauseKey(name: string | null, state: PlaybackState | undefin
 	return transportKey(playing ? "pause" : "play", name, enabled, showCaption, playing ? COLORS.paused : COLORS.playing);
 }
 
-export type VolumeMode = "up" | "down" | "mute" | "level";
+export type VolumeMode = "up" | "down" | "mute" | "level" | "level_mute";
 
 /** A speaker glyph centred on (72, 66): waves, or a cross when muted. */
 function speakerGlyph(color: string, muted: boolean): string {
@@ -124,13 +124,13 @@ function speakerGlyph(color: string, muted: boolean): string {
 
 /**
  * Volume keys. `up` and `down` show a speaker with a plus or minus; `mute` a speaker,
- * crossed and yellow while muted; `level` the number on an arc. All grey out when the
- * player has no volume.
+ * crossed and yellow while muted; `level` and `level_mute` the number on an arc (the
+ * latter's caption says a press mutes). All grey out when the player has no volume.
  */
 export function volumeKey(name: string | null, level: number | null, muted: boolean, mode: VolumeMode, showCaption = true): string {
 	const color = level === null ? COLORS.disabled : muted ? COLORS.paused : COLORS.accent;
 	const captionColor = level === null ? COLORS.secondary : COLORS.text;
-	if (mode === "level") {
+	if (mode === "level" || mode === "level_mute") {
 		const fraction = level === null ? 0 : Math.max(0, Math.min(1, level / 100));
 		const cy = showCaption ? (name !== null ? 76 : 70) : name !== null ? 84 : 72;
 		const arc = 2 * Math.PI * 38 * 0.75;
@@ -141,7 +141,7 @@ export function volumeKey(name: string | null, level: number | null, muted: bool
 			? `<g transform="translate(72 ${cy}) scale(0.55) translate(-72 -66)">${speakerGlyph(COLORS.paused, true)}</g>`
 			: label(level === null ? "–" : String(Math.round(level)), cy + 9, 26, level === null ? COLORS.secondary : COLORS.text, 700);
 		const top = name !== null ? label(name, 22, 14, COLORS.secondary, 600) : "";
-		const bottom = showCaption ? label(muted ? "Muted" : "Volume", 132, 17, captionColor) : "";
+		const bottom = showCaption ? label(mode === "level_mute" ? (muted ? "Unmute" : "Mute") : muted ? "Muted" : "Volume", 132, 17, captionColor) : "";
 		return svg(top + gauge + centre + bottom);
 	}
 	const badge =

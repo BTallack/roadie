@@ -47,6 +47,8 @@ for (const player of players) {
 		"volume-level": volumeKey(player.name, level, muted, "level"),
 		"volume-level-noname": volumeKey(null, level, muted, "level"),
 		"volume-level-muted": volumeKey(player.name, level, true, "level"),
+		"volume-level-mute": volumeKey(player.name, level, muted, "level_mute"),
+		"volume-level-mute-muted": volumeKey(player.name, level, true, "level_mute"),
 		"volume-up-icon": volumeKey(null, level, muted, "up", false),
 		"volume-up-noname": volumeKey(null, level, muted, "up"),
 		"nowplaying-art": nowPlayingKey(null, art, { title, artist, state, available: player.available, progress: session.progress(queue), caption: false }),

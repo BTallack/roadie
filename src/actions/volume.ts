@@ -33,8 +33,9 @@ export class VolumeAction extends PlayerAction<Settings> {
 		const mode = ev.payload.settings.mode ?? "up";
 		if (level === null) return void (await ev.action.showAlert());
 		if (mode === "level") return;
-		const command = mode === "mute" ? "players/cmd/volume_mute" : group ? `players/cmd/group_volume_${mode}` : `players/cmd/volume_${mode}`;
-		const args = mode === "mute" ? { player_id: context.player.player_id, muted: !muted } : { player_id: context.player.player_id };
+		const mutes = mode === "mute" || mode === "level_mute";
+		const command = mutes ? "players/cmd/volume_mute" : group ? `players/cmd/group_volume_${mode}` : `players/cmd/volume_${mode}`;
+		const args = mutes ? { player_id: context.player.player_id, muted: !muted } : { player_id: context.player.player_id };
 		await this.run(ev.action, () => session.command(command, args));
 	}
 
