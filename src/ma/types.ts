@@ -53,6 +53,7 @@ export type Player = {
 	volume_level?: number | null;
 	volume_muted?: boolean | null;
 	group_volume?: number | null;
+	group_volume_muted?: boolean | null;
 	group_members?: string[];
 	synced_to?: string | null;
 	active_group?: string | null;
@@ -82,8 +83,11 @@ export type ItemMapping = {
 	image?: MediaItemImage | null;
 };
 
+export type ProviderMapping = { item_id: string; provider_domain: string; provider_instance: string; available?: boolean };
+
 export type MediaItem = ItemMapping & {
 	favorite?: boolean;
+	provider_mappings?: ProviderMapping[];
 	metadata?: { images?: MediaItemImage[] | null } | null;
 	artists?: ItemMapping[];
 	album?: ItemMapping | null;

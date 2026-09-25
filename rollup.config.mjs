@@ -6,7 +6,7 @@ import path from "node:path";
 import url from "node:url";
 
 const isWatching = !!process.env.ROLLUP_WATCH;
-const sdPlugin = "media.tallack.musicassistant.sdPlugin";
+const sdPlugin = "media.tallack.roadie.sdPlugin";
 
 /** @type {import('rollup').RollupOptions} */
 const config = {

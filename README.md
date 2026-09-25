@@ -1,13 +1,28 @@
-# Music Assistant on Stream Deck
+# Roadie for Music Assistant
 
-An Elgato Stream Deck plugin for [Music Assistant](https://www.music-assistant.io): playback
-controls per player, now-playing artwork, and keys that load your playlists. It talks straight
-to your own Music Assistant server over its WebSocket API; nothing goes through any other
-service.
+Your [Music Assistant](https://www.music-assistant.io) players on an Elgato Stream Deck:
+now playing with artwork, play/pause, skip, stop, volume, and keys that load your playlists.
+Roadie talks straight to your own Music Assistant server over its WebSocket API; nothing goes
+through any other service. It isn't an official Music Assistant project.
 
-Early days: the plan is in [docs/PLAN.md](docs/PLAN.md) and what the API allows in
-[docs/music-assistant-api.md](docs/music-assistant-api.md). The connection layer works;
-keys are next.
+## Keys
+
+| Key | Shows | Press |
+|---|---|---|
+| Now playing | Artwork, title and artist, a state dot, a progress bar that keeps moving | Play / pause. On a Stream Deck+ dial: turn for volume |
+| Play / Pause | Play while paused or idle, pause while playing; grey when the player can't | Toggles |
+| Next / Previous | Skip glyph, lit while something is playing or paused | Skips |
+| Stop | Stop glyph, lit while something is playing or paused | Stops |
+| Volume | The level on an arc, muted state; up, down or mute chosen in settings | Steps or mutes. On a dial: turn for volume, press to mute |
+| Playlist | The playlist's artwork and name; framed green while the player plays from it, yellow while paused on it | Loads it on the player: replace the queue, play now, play next, or add to the end; shuffle on, off or as the server is set |
+
+Every key names its player. Keys can hide the player name, and glyph keys their caption.
+Group players (Sonos sync groups, Music Assistant groups) work like any other, with the
+group's volume. Players on another source (Spotify Connect, line-in) show what the player
+reports and take the commands it supports.
+
+The plan and what's next are in [docs/PLAN.md](docs/PLAN.md); what the API allows is in
+[docs/music-assistant-api.md](docs/music-assistant-api.md).
 
 ## Requirements
 
@@ -25,10 +40,13 @@ Needs Node 24.
 npm install
 npm test                                              # unit tests against a fake Music Assistant
 MA_URL=192.168.1.10 MA_TOKEN=... npm run probe        # read-only dump of a real server
+MA_URL=192.168.1.10 MA_TOKEN=... npx tsx scripts/preview.ts [player…]   # draws every key into .preview/
 npm run build
 npx streamdeck dev                                    # once: developer mode
-npx streamdeck link media.tallack.musicassistant.sdPlugin
+npx streamdeck link media.tallack.roadie.sdPlugin
 npm run watch                                         # rebuilds and restarts the plugin on save
+npx streamdeck validate media.tallack.roadie.sdPlugin
+npx streamdeck pack media.tallack.roadie.sdPlugin     # .streamDeckPlugin for distribution
 ```
 
 The settings panels use a local copy of [sdpi-components](https://sdpi-components.dev), so

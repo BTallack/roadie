@@ -1,10 +1,10 @@
 {
-	"Name": "Music Assistant Controls",
+	"Name": "Roadie for Music Assistant",
 	"Version": "0.1.0.0",
 	"Author": "Tallack Media",
-	"Description": "Your Music Assistant players on Stream Deck: now playing, play/pause, skip, volume, and keys that load your playlists. Talks straight to your own Music Assistant server.",
-	"URL": "https://github.com/tallackmedia/egs-music-assistant",
-	"Category": "Music Assistant",
+	"Description": "Roadie puts your Music Assistant players on Stream Deck: now playing, play/pause, skip, volume, and keys that load your playlists. Talks straight to your own Music Assistant server.",
+	"URL": "https://github.com/tallackmedia/roadie",
+	"Category": "Roadie for Music Assistant",
 	"CategoryIcon": "imgs/plugin/category-icon",
 	"Icon": "imgs/plugin/marketplace",
 	"CodePath": "bin/plugin.js",
@@ -20,11 +20,11 @@
 		"Version": "24",
 		"Debug": "enabled"
 	},
-	"UUID": "media.tallack.musicassistant",
+	"UUID": "media.tallack.roadie",
 	"Actions": [
 		{
 			"Name": "Now playing",
-			"UUID": "media.tallack.musicassistant.nowplaying",
+			"UUID": "media.tallack.roadie.nowplaying",
 			"Icon": "imgs/actions/nowplaying",
 			"Tooltip": "Artwork, title and artist for one player. Press to play or pause. On a dial: turn for volume.",
 			"PropertyInspectorPath": "ui/player.html",
@@ -37,7 +37,7 @@
 		},
 		{
 			"Name": "Play / Pause",
-			"UUID": "media.tallack.musicassistant.playpause",
+			"UUID": "media.tallack.roadie.playpause",
 			"Icon": "imgs/actions/playpause",
 			"Tooltip": "Plays or pauses the player.",
 			"PropertyInspectorPath": "ui/player.html",
@@ -46,7 +46,7 @@
 		},
 		{
 			"Name": "Next track",
-			"UUID": "media.tallack.musicassistant.next",
+			"UUID": "media.tallack.roadie.next",
 			"Icon": "imgs/actions/next",
 			"Tooltip": "Skips to the next track.",
 			"PropertyInspectorPath": "ui/player.html",
@@ -55,7 +55,7 @@
 		},
 		{
 			"Name": "Previous track",
-			"UUID": "media.tallack.musicassistant.previous",
+			"UUID": "media.tallack.roadie.previous",
 			"Icon": "imgs/actions/previous",
 			"Tooltip": "Goes back to the previous track.",
 			"PropertyInspectorPath": "ui/player.html",
@@ -64,7 +64,7 @@
 		},
 		{
 			"Name": "Stop",
-			"UUID": "media.tallack.musicassistant.stop",
+			"UUID": "media.tallack.roadie.stop",
 			"Icon": "imgs/actions/stop",
 			"Tooltip": "Stops playback on the player.",
 			"PropertyInspectorPath": "ui/player.html",
@@ -73,7 +73,7 @@
 		},
 		{
 			"Name": "Volume",
-			"UUID": "media.tallack.musicassistant.volume",
+			"UUID": "media.tallack.roadie.volume",
 			"Icon": "imgs/actions/volume",
 			"Tooltip": "Volume up, down or mute as a key; on a dial, turn for volume and press to mute.",
 			"PropertyInspectorPath": "ui/volume.html",
@@ -86,7 +86,7 @@
 		},
 		{
 			"Name": "Playlist",
-			"UUID": "media.tallack.musicassistant.playlist",
+			"UUID": "media.tallack.roadie.playlist",
 			"Icon": "imgs/actions/playlist",
 			"Tooltip": "Loads a playlist on a player. Shows the playlist's artwork, lit while it's playing.",
 			"PropertyInspectorPath": "ui/playlist.html",

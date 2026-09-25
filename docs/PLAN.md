@@ -13,10 +13,32 @@ found by mDNS later).
 
 ## Status
 
-- 25 Sep 2026: research done, project scaffolded, connection layer written and tested
-  against a fake server. `npm run probe` talks to a real one. Nothing draws on a deck yet.
+- 25 Sep 2026, afternoon: research done, project scaffolded, connection layer tested.
+- 25 Sep 2026, evening: named **Roadie for Music Assistant** (UUID `media.tallack.roadie`).
+  Phases 1 to 3 built: session layer, all seven keys (Now playing key and dial, Play/Pause,
+  Next, Previous, Stop, Volume key and dial, Playlist), three settings panels, icons.
+  16 tests pass against a fake server; `scripts/preview.ts` draws every key from the real
+  one; `streamdeck validate` is clean apart from the repo URL not existing yet. Linked into
+  Brennan's Stream Deck app for a first try. Not done from the v1 list: "Selected on this
+  deck" (phase 2 item, deferred to phase 4), shuffle/repeat/power keys, marketplace polish.
 - Brennan's server: Music Assistant 2.10.4 (schema 65), Home Assistant add-on,
-  `http://192.168.1.10:8095`. Needs a long-lived token before the probe can list players.
+  `http://192.168.1.10:8095`. 17 players (Sonos, three sync groups), 98 playlists across
+  Spotify, Apple Music, Plex and Music Assistant's own.
+
+What the probe taught us, folded into the code:
+
+- Sonos players report no `power` feature and are always "on", so a Power key is pointless
+  for this house; it stays a later option for players that have it.
+- Sync-group players list no `pause` or `next_previous` feature, but their queue takes all
+  transport commands. So a key trusts the queue when Music Assistant is the source and only
+  checks features for native sources (`canTransport` in `shared.ts`).
+- A queue is `active` even while idle; it means Music Assistant is the player's source.
+- The image proxy needs no token and rejects sizes other than 0/80/160/256/512/1024.
+- The same playlist name appears from several providers (Spotify and Apple Music copies of
+  "Hamilton"), so the picker shows the provider's name after each.
+- Group players carry `group_volume` instead of `volume_level`; the volume key uses
+  `group_volume`, `group_volume_up/down` for them.
+- Clock offset between this Mac and the server is 2 ms; the `time` heartbeat keeps it.
 
 ## Keys
 
@@ -57,7 +79,7 @@ src/
   render.ts            SVG key images at 144 px; strip layouts for dials
 scripts/probe.ts       read-only dump of a real server                (done)
 test/                  node:test against a fake Music Assistant (ws)  (connection done)
-media.tallack.musicassistant.sdPlugin/
+media.tallack.roadie.sdPlugin/
   manifest.json  ui/*.html  ui/sdpi-components.js  imgs/
 ```
 
@@ -119,7 +141,7 @@ icons.
 
 ## Decisions to make
 
-1. **Name and id.** Manifest says "Music Assistant Controls", UUID `media.tallack.musicassistant`,
+1. **Name and id.** Manifest says "Roadie for Music Assistant", UUID `media.tallack.roadie`,
    repo `egs-music-assistant`. Elgato's Marketplace can bounce names that lead with another
    product's trademark, and the Music Assistant project may prefer we don't look official.
    Options: keep it, or a Culm-style own name with "for Music Assistant" after it.
