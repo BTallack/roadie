@@ -36,6 +36,26 @@ function fit(text: string, fontSize: number, width = SIZE - 16): string {
 	return text.length > max ? `${text.slice(0, Math.max(max - 1, 1))}…` : text;
 }
 
+/** The largest font size between `max` and `min` at which the text fits the width. */
+function shrink(text: string, max: number, min: number, width = SIZE - 16): number {
+	for (let size = max; size > min; size--) if (text.length <= Math.floor(width / (size * 0.56))) return size;
+	return min;
+}
+
+/** A name as a small line at the top of a key, shrunk a little before it's trimmed. */
+function topName(text: string, width = SIZE - 16, x = 72, anchor = "middle"): string {
+	return label(text, 22, shrink(text, 14, 11, width), COLORS.secondary, 600, x, anchor, width);
+}
+
+/** Splits a name onto two lines at the space nearest the middle, when one line won't do. */
+function twoLines(text: string, size: number): [string] | [string, string] {
+	if (text.length <= Math.floor((SIZE - 16) / (size * 0.56))) return [text];
+	const spaces = [...text.matchAll(/ /g)].map((m) => m.index!);
+	if (!spaces.length) return [text];
+	const cut = spaces.reduce((best, i) => (Math.abs(i - text.length / 2) < Math.abs(best - text.length / 2) ? i : best), spaces[0]);
+	return [text.slice(0, cut), text.slice(cut + 1)];
+}
+
 function label(text: string, y: number, size: number, color = COLORS.text, weight = 600, x = 72, anchor = "middle", width?: number): string {
 	return `<text x="${x}" y="${y}" text-anchor="${anchor}" font-family="${FONT}" font-size="${size}" font-weight="${weight}" fill="${color}">${escape(fit(text, size, width))}</text>`;
 }
@@ -82,7 +102,7 @@ function picture(art: Artwork | undefined): string {
  * glyph alone sits at the key's centre, a little larger.
  */
 function glyphKey(glyph: string, name: string | null, caption: string | null, color: string): string {
-	const top = name !== null ? label(name, 22, 14, COLORS.secondary, 600) : "";
+	const top = name !== null ? topName(name) : "";
 	const bottom = caption !== null ? label(caption, 132, 17, color) : "";
 	const centerY = caption !== null ? (name !== null ? 76 : 70) : name !== null ? 84 : 72;
 	const scale = caption !== null || name !== null ? 1 : 1.2;
@@ -145,7 +165,7 @@ export function volumeKey(name: string | null, level: number | null, muted: bool
 		const centre = muted
 			? `<g transform="translate(72 ${cy}) scale(0.55) translate(-72 -66)">${speakerGlyph(COLORS.paused, style === "waves" ? 0 : "muted")}</g>`
 			: label(level === null ? "–" : String(Math.round(level)), cy + 9, 26, level === null ? COLORS.secondary : COLORS.text, 700);
-		const top = name !== null ? label(name, 22, 14, COLORS.secondary, 600) : "";
+		const top = name !== null ? topName(name) : "";
 		const bottom = showCaption ? label(mode === "level_mute" ? (muted ? "Unmute" : "Mute") : muted ? "Muted" : "Volume", 132, 17, captionColor) : "";
 		return svg(top + gauge + centre + bottom);
 	}
@@ -172,7 +192,7 @@ export function nowPlayingKey(name: string | null, art: Artwork | undefined, now
 	const color = stateColor(now.state, now.available);
 	let body = picture(art);
 	if (!art) body += `<path d="M62 100 V44 l40 -10 v50" fill="none" stroke="${COLORS.idle}" stroke-width="6" stroke-linejoin="round"/><circle cx="52" cy="100" r="11" fill="${COLORS.idle}"/><circle cx="92" cy="84" r="11" fill="${COLORS.idle}"/>`;
-	if (name !== null) body += `<rect width="144" height="30" fill="#000000" opacity="0.55"/>` + label(name, 21, 15, COLORS.text, 600, 12, "start", 112) + `<circle cx="128" cy="15" r="6" fill="${color}"/>`;
+	if (name !== null) body += `<rect width="144" height="30" fill="#000000" opacity="0.55"/>` + label(name, 21, shrink(name, 15, 10, 108), COLORS.text, 600, 12, "start", 108) + `<circle cx="128" cy="15" r="6" fill="${color}"/>`;
 	else body += `<circle cx="128" cy="16" r="7" fill="${color}" stroke="#000000" stroke-opacity="0.5" stroke-width="2"/>`;
 	if ((now.title && now.caption !== false) || !now.available) {
 		const title = now.available ? now.title! : "Unavailable";
@@ -201,7 +221,7 @@ export function mediaKey(kind: MediaKind, name: string | null, art: Artwork | un
 	let body = picture(art);
 	if (!art) body += MEDIA_GLYPHS[kind](enabled ? COLORS.idle : COLORS.disabled);
 	if (showCaption && itemName) body += `<rect y="108" width="144" height="36" fill="#000000" opacity="0.6"/>` + label(itemName, 131, 15, enabled ? COLORS.text : COLORS.secondary, 700);
-	if (name !== null) body += `<rect width="144" height="26" fill="#000000" opacity="0.5"/>` + label(name, 19, 13, COLORS.secondary, 600);
+	if (name !== null) body += `<rect width="144" height="26" fill="#000000" opacity="0.5"/>` + label(name, 19, shrink(name, 13, 11), COLORS.secondary, 600);
 	if (playing) body += `<rect x="3" y="3" width="138" height="138" rx="14" fill="none" stroke="${playing === "playing" ? COLORS.playing : COLORS.paused}" stroke-width="6"/>`;
 	if (!enabled) body += `<rect width="144" height="144" fill="#000000" opacity="0.45"/>`;
 	return svg(body);
@@ -281,9 +301,16 @@ export function selectKey(playerName: string, state: PlaybackState | undefined, 
 	const color = stateColor(state, available);
 	let body = `<circle cx="72" cy="48" r="12" fill="${color}"/>`;
 	if (position) body += label(position, 20, 12, COLORS.secondary, 600, 132, "end", 120);
-	body += label(playerName, 88, 20, COLORS.text, 700);
-	if (nowPlaying) body += label(nowPlaying, 114, 13, COLORS.secondary, 500);
-	else body += label(stateLabel(state, available), 114, 13, COLORS.secondary, 500);
+	// Long room names wrap onto two lines rather than being cut short.
+	const lines = twoLines(playerName, 20);
+	if (lines.length === 1) {
+		body += label(lines[0], 88, shrink(lines[0], 20, 15), COLORS.text, 700);
+	} else {
+		const size = Math.min(shrink(lines[0], 18, 13), shrink(lines[1], 18, 13));
+		body += label(lines[0], 80, size, COLORS.text, 700) + label(lines[1], 80 + size + 3, size, COLORS.text, 700);
+	}
+	const detailY = lines.length === 1 ? 114 : 124;
+	body += label(nowPlaying ?? stateLabel(state, available), detailY, 13, COLORS.secondary, 500);
 	if (selected) body += `<rect x="3" y="3" width="138" height="138" rx="14" fill="none" stroke="${COLORS.accent}" stroke-width="6"/>`;
 	return svg(body);
 }
