@@ -25,7 +25,16 @@
 		<sdpi-checkbox-list setting="players" datasource="getPlayersOnly" loading="Loading players…" hot-reload></sdpi-checkbox-list>
 	</sdpi-item>
 	<p class="note">Each press moves the deck's selection to the next ticked player, in the order shown. The key shows the current one.</p>
+	<sdpi-item label="Show">
+		<sdpi-checkbox setting="hidePosition" label="Hide the position in the list (3 / 4)"></sdpi-checkbox>
+	</sdpi-item>
 	</div>
+	<sdpi-item label="Player state">
+		<sdpi-select setting="stateStyle" default="dot">
+			<option value="dot">A dot above the name</option>
+			<option value="border">A border around the key (more room for the name and track)</option>
+		</sdpi-select>
+	</sdpi-item>
 	<p class="note">On a Stream Deck+ dial these settings are ignored: turn to step through every player, press or tap to play or pause the selected one.</p>
 	<script>
 		// Show the fields for the chosen mode.

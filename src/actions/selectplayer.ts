@@ -9,6 +9,10 @@ type Settings = PlayerSettings & {
 	mode?: "pick" | "cycle";
 	/** The players a cycling key steps through, in the order ticked. */
 	players?: string[];
+	/** Leave the "3 / 4" off a cycling key. */
+	hidePosition?: boolean;
+	/** Show the player's state as a border around the key instead of a dot. */
+	stateStyle?: "dot" | "border";
 };
 
 /**
@@ -58,12 +62,20 @@ export class SelectPlayerAction extends PlayerAction<Settings> {
 		const item = queue?.current_item;
 		const title = item?.media_item?.name ?? item?.name ?? player.current_media?.title ?? null;
 		if (action.isKey()) {
+			// Detail: the track and its artist; on a stream, the station and what it's playing;
+			// otherwise what the queue was loaded from.
+			const artist = item?.media_item?.artists?.map((artist) => artist.name).join(", ") ?? player.current_media?.artist ?? null;
+			const streamTitle = item && item.media_item && item.name !== item.media_item.name ? item.name : null;
+			const source = (queue?.sources ?? queue?.radio_source ?? [])[0]?.name ?? null;
+			const details = title ? [title, artist ?? streamTitle ?? source ?? ""] : [];
+			const border = settings.stateStyle === "border";
 			if (settings.mode === "cycle") {
 				const list = this.cycle(settings);
 				const at = list.indexOf(player.player_id);
-				await this.setImage(action, selectKey(player.name, state, player.available, false, title, list.length ? `${at < 0 ? "–" : at + 1} / ${list.length}` : "No players ticked"));
+				const position = settings.hidePosition ? undefined : list.length ? `${at < 0 ? "–" : at + 1} / ${list.length}` : "No players ticked";
+				await this.setImage(action, selectKey(player.name, state, player.available, details, { selected: false, position, border }));
 			} else {
-				await this.setImage(action, selectKey(player.name, state, player.available, session.selectedPlayerId === player.player_id, title));
+				await this.setImage(action, selectKey(player.name, state, player.available, details, { selected: session.selectedPlayerId === player.player_id, border }));
 			}
 		} else if (action.isDial()) {
 			const artist = item?.media_item?.artists?.map((artist) => artist.name).join(", ") ?? player.current_media?.artist ?? null;

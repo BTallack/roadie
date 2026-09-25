@@ -78,8 +78,10 @@ for (const player of players) {
 		group: groupKey(player.name, "Kitchen", false, true),
 		"group-on": groupKey(player.name, "Kitchen", true, true),
 		transfer: transferKey(player.name, "Kitchen", true),
-		select: selectKey(player.name, state, player.available, false, title),
-		"select-on": selectKey(player.name, state, player.available, true, title),
+		select: selectKey(player.name, state, player.available, title ? [title, artist ?? ""] : [], { selected: false }),
+		"select-on": selectKey(player.name, state, player.available, title ? [title, artist ?? ""] : [], { selected: true }),
+		"select-border": selectKey(player.name, state, player.available, title ? [title, artist ?? ""] : [], { selected: false, border: true, position: "2 / 5" }),
+		"select-border-on": selectKey(player.name, state, player.available, title ? [title, artist ?? ""] : [], { selected: true, border: true }),
 		radio: mediaKey("radio", player.name, radioArt, radio?.name ?? "Choose a station", radio ? "playing" : false, !!radio),
 	};
 	for (const [name, url] of Object.entries(keys)) write(`${slug}-${name}`, url);

@@ -296,21 +296,47 @@ export function transferKey(name: string | null, targetName: string | null, enab
 	return glyphKey(glyph, name, showCaption ? (targetName ? `To ${targetName}` : "Move queue") : null, enabled ? COLORS.text : COLORS.secondary);
 }
 
-/** A player as a room button: its name large, its state, framed while it's the deck's selection. */
-export function selectKey(playerName: string, state: PlaybackState | undefined, available: boolean, selected: boolean, nowPlaying: string | null, position?: string): string {
+export type SelectLook = {
+	/** The deck's selection: an accent frame (dot style) or an inner accent ring (border style). */
+	selected: boolean;
+	/** "3 / 4" in the corner for a cycling key, or nothing. */
+	position?: string;
+	/** State as a coloured border around the key instead of a dot above the name. */
+	border?: boolean;
+};
+
+/**
+ * A player as a room button: its name (wrapped onto two lines when long), its state as a
+ * dot or a border, and up to two lines of detail: the track and artist, or what it's
+ * playing from.
+ */
+export function selectKey(playerName: string, state: PlaybackState | undefined, available: boolean, details: string[], look: SelectLook): string {
 	const color = stateColor(state, available);
-	let body = `<circle cx="72" cy="48" r="12" fill="${color}"/>`;
-	if (position) body += label(position, 20, 12, COLORS.secondary, 600, 132, "end", 120);
-	// Long room names wrap onto two lines rather than being cut short.
+	let body = "";
+	if (look.position) body += label(look.position, 20, 12, COLORS.secondary, 600, 132, "end", 120);
 	const lines = twoLines(playerName, 20);
-	if (lines.length === 1) {
-		body += label(lines[0], 88, shrink(lines[0], 20, 15), COLORS.text, 700);
-	} else {
-		const size = Math.min(shrink(lines[0], 18, 13), shrink(lines[1], 18, 13));
-		body += label(lines[0], 80, size, COLORS.text, 700) + label(lines[1], 80 + size + 3, size, COLORS.text, 700);
+	const size = lines.length === 1 ? shrink(lines[0], 20, 15) : Math.min(shrink(lines[0], 18, 13), shrink(lines[1], 18, 13));
+	// Where the name sits: under the dot, or higher when the border carries the state.
+	let y = look.border ? (lines.length === 1 ? 58 : 48) : lines.length === 1 ? 88 : 80;
+	if (!look.border) body += `<circle cx="72" cy="48" r="12" fill="${color}"/>`;
+	for (const line of lines) {
+		body += label(line, y, size, COLORS.text, 700);
+		y += size + 3;
 	}
-	const detailY = lines.length === 1 ? 114 : 124;
-	body += label(nowPlaying ?? stateLabel(state, available), detailY, 13, COLORS.secondary, 500);
-	if (selected) body += `<rect x="3" y="3" width="138" height="138" rx="14" fill="none" stroke="${COLORS.accent}" stroke-width="6"/>`;
+	const shown = details.filter((line) => line.trim().length > 0);
+	if (shown.length === 0) shown.push(stateLabel(state, available));
+	// Room for two detail lines with the border, or with a short name; otherwise one.
+	const room = look.border || lines.length === 1 ? 2 : 1;
+	y += 8;
+	for (const line of shown.slice(0, room)) {
+		body += label(line, y + 4, 13, COLORS.secondary, 500);
+		y += 17;
+	}
+	if (look.border) {
+		body += `<rect x="3" y="3" width="138" height="138" rx="14" fill="none" stroke="${color}" stroke-width="6"/>`;
+		if (look.selected) body += `<rect x="9" y="9" width="126" height="126" rx="10" fill="none" stroke="${COLORS.accent}" stroke-width="3"/>`;
+	} else if (look.selected) {
+		body += `<rect x="3" y="3" width="138" height="138" rx="14" fill="none" stroke="${COLORS.accent}" stroke-width="6"/>`;
+	}
 	return svg(body);
 }
