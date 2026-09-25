@@ -1,7 +1,7 @@
 import streamDeck from "@elgato/streamdeck";
 import type { JsonValue } from "@elgato/utils";
 
-import { Session } from "./ma/session";
+import { SELECTED, Session } from "./ma/session";
 import type { Player, PlayerQueue } from "./ma/types";
 
 /** Global settings: one Music Assistant server for every key, kept by Stream Deck. */
@@ -10,10 +10,12 @@ export type GlobalSettings = {
 	token?: string;
 	/** The last settings a key was given, to start the next new key from. */
 	defaults?: Record<string, JsonValue | undefined>;
+	/** The player chosen on this deck, for keys set to follow it. */
+	selectedPlayerId?: string;
 };
 
 /** Settings that are about one key alone, never carried to a new one. */
-const NOT_REMEMBERED = new Set(["playlistUri", "radioUri"]);
+const NOT_REMEMBERED = new Set(["playlistUri", "radioUri", "albumUri", "artistUri", "targetId"]);
 
 let defaults: Record<string, JsonValue | undefined> = {};
 
@@ -33,6 +35,19 @@ export function seedSettings<T extends Record<string, JsonValue | undefined>>(se
 /** Called with the global settings whenever Stream Deck sends them. */
 export function loadDefaults(global: GlobalSettings): void {
 	if (global.defaults && typeof global.defaults === "object") defaults = { ...global.defaults };
+	if (typeof global.selectedPlayerId === "string" && !session.selectedPlayerId) session.selectedPlayerId = global.selectedPlayerId;
+}
+
+/** Selects a player for the deck and keeps the choice across restarts. */
+export function selectPlayer(id: string): void {
+	session.select(id);
+	void streamDeck.settings.getGlobalSettings<GlobalSettings>().then((global) => streamDeck.settings.setGlobalSettings({ ...global, selectedPlayerId: id }));
+}
+
+/** The player picker's entries: the deck's selection first, then every player. */
+export function playerItems(includeSelected = true): Array<{ label: string; value: string }> {
+	const items = session.playerList().map((player) => ({ label: player.type === "group" ? `${player.name} (group)` : player.name, value: player.player_id }));
+	return includeSelected ? [{ label: "Selected on this deck", value: SELECTED }, ...items] : items;
 }
 
 /** The one server connection all keys share. */

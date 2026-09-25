@@ -14,6 +14,10 @@ export type MediaSettings = PlayerSettings & {
 	playlistUri?: string;
 	/** The station's Music Assistant URI, e.g. `library://radio/241`. */
 	radioUri?: string;
+	/** The album's Music Assistant URI. */
+	albumUri?: string;
+	/** The artist's Music Assistant URI; played as an artist radio. */
+	artistUri?: string;
 	/** Replace the queue (default), play now, play next, or add to the end. */
 	enqueue?: QueueOption;
 	/** Server default, on, or off (playlists only). */
@@ -27,10 +31,15 @@ export type MediaSettings = PlayerSettings & {
  */
 export abstract class MediaAction extends PlayerAction<MediaSettings> {
 	protected abstract readonly kind: MediaKind;
-	protected abstract readonly uriKey: "playlistUri" | "radioUri";
+	protected abstract readonly uriKey: "playlistUri" | "radioUri" | "albumUri" | "artistUri";
 	/** The settings panel's datasource event, e.g. `getPlaylists`. */
 	protected abstract readonly listEvent: string;
 	protected abstract choices(): Promise<MediaChoice[]>;
+
+	/** What to hand play_media for the chosen item (an artist becomes an artist radio). */
+	protected playUri(uri: string): string {
+		return uri;
+	}
 
 	/** Items by URI, looked up once for the key's name and art; null when it's gone. */
 	private items = new Map<string, Promise<MediaItem | null>>();
@@ -51,10 +60,11 @@ export abstract class MediaAction extends PlayerAction<MediaSettings> {
 		const art = item ? await session.artwork(item) : undefined;
 		const sources = queue?.sources ?? queue?.radio_source ?? [];
 		const current = queue?.current_item?.media_item?.uri;
-		const loaded = !!uri && (sources.some((source) => source.uri === uri) || current === uri);
+		const played = uri ? this.playUri(uri) : undefined;
+		const loaded = !!uri && (sources.some((source) => source.uri === uri || source.uri === played) || current === uri);
 		const playing = loaded ? (queue!.state === "playing" ? "playing" : queue!.state === "paused" ? "loaded" : false) : false;
 		const enabled = player.available && !!uri && item !== null;
-		const noun = this.kind === "radio" ? "station" : "playlist";
+		const noun = { playlist: "playlist", radio: "station", album: "album", artist: "artist" }[this.kind];
 		const itemName = !uri ? `Choose a ${noun}` : item === null ? `${noun.charAt(0).toUpperCase()}${noun.slice(1)} gone` : (item?.name ?? "…");
 		await this.setImage(action, mediaKey(this.kind, name, art, caption ? itemName : null, playing, enabled, true));
 	}
@@ -79,8 +89,8 @@ export abstract class MediaAction extends PlayerAction<MediaSettings> {
 		const uri = ev.payload.settings[this.uriKey];
 		const { enqueue, shuffle } = ev.payload.settings;
 		if (!context || !uri || !context.player.available) return void (await ev.action.showAlert());
-		const args: Record<string, unknown> = { queue_id: targetQueue(context.player), media: uri, option: enqueue ?? "replace" };
-		if (this.kind === "playlist" && (shuffle === "on" || shuffle === "off")) args.shuffle = shuffle === "on";
+		const args: Record<string, unknown> = { queue_id: targetQueue(context.player), media: this.playUri(uri), option: enqueue ?? "replace" };
+		if ((this.kind === "playlist" || this.kind === "album") && (shuffle === "on" || shuffle === "off")) args.shuffle = shuffle === "on";
 		await this.run(ev.action, () => session.command("player_queues/play_media", args));
 	}
 
@@ -89,7 +99,7 @@ export abstract class MediaAction extends PlayerAction<MediaSettings> {
 		if (payload?.event !== this.listEvent) return super.onSendToPlugin(ev);
 		try {
 			const choices = await this.choices();
-			const item = (choice: MediaChoice) => ({ label: choice.name, value: choice.uri });
+			const item = (choice: MediaChoice) => ({ label: choice.label ?? choice.name, value: choice.uri });
 			const groups = new Map<string, MediaChoice[]>();
 			for (const choice of choices) groups.set(choice.group, [...(groups.get(choice.group) ?? []), choice]);
 			const favourites = choices.filter((choice) => choice.favorite);

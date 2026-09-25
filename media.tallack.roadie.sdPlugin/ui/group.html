@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+	<meta charset="utf-8" />
+	<title>Roadie</title>
+	<script src="sdpi-components.js"></script>
+	<script src="server.js"></script>
+	<link rel="stylesheet" href="server.css" />
+</head>
+<body>
+	<sdpi-item label="Player">
+		<sdpi-select setting="playerId" datasource="getPlayers" loading="Loading players…" placeholder="Choose a player" hot-reload></sdpi-select>
+	</sdpi-item>
+	<sdpi-item label="Join">
+		<sdpi-select setting="targetId" datasource="getTargets" loading="Loading players…" placeholder="Choose a player or group" hot-reload></sdpi-select>
+	</sdpi-item>
+	<p class="note">Press joins the player to the chosen one (or its group); press again to leave. Only players the server says can group together are listed.</p>
+	<sdpi-item label="Show">
+		<sdpi-checkbox setting="hideName" label="Hide player name"></sdpi-checkbox>
+	</sdpi-item>
+	<sdpi-item>
+		<sdpi-checkbox setting="hideCaption" label="Hide caption, glyph only"></sdpi-checkbox>
+	</sdpi-item>
+
+	<div class="section">
+		<div class="heading">Music Assistant server</div>
+		<div id="server-summary" hidden>
+			<sdpi-item label="Server">
+				<div class="summary">
+					<div class="text"><span class="server" id="server-name"></span><br /><span class="state"></span></div>
+					<sdpi-button id="change">Change</sdpi-button>
+				</div>
+			</sdpi-item>
+		</div>
+		<div id="server-fields">
+			<sdpi-item label="Address">
+				<sdpi-textfield setting="url" global placeholder="192.168.1.10:8095"></sdpi-textfield>
+			</sdpi-item>
+			<sdpi-item label="Token">
+				<sdpi-password setting="token" global placeholder="Long-lived access token"></sdpi-password>
+			</sdpi-item>
+			<sdpi-item label="Status">
+				<div class="summary"><span class="state">Checking…</span></div>
+			</sdpi-item>
+		</div>
+		<p class="note" id="note">Set once and shared by every Roadie key. The plugin talks only to this server, on your network. Make a token in Music Assistant under Settings, Profile, Long-lived access tokens. A user with the guest role is enough; give it a player filter to limit what the deck can reach.</p>
+	</div>
+</body>
+</html>

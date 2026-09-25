@@ -3,12 +3,15 @@ import { EventEmitter } from "node:events";
 import { Connection, fetchServerInfo, imageURL, isAuthError, normaliseURL, MusicAssistantError } from "./connection";
 import { itemImage, type MassEvent, type MediaItem, type Player, type PlayerQueue, type ServerInfo } from "./types";
 
+/** The `playerId` a key stores to follow the deck's selected player instead of one of its own. */
+export const SELECTED = "selected";
+
 export type ConnectionState = "unconfigured" | "connecting" | "live" | "offline" | "unauthorized";
 
 type Logger = { info(message: string): void; warn(message: string): void };
 
-/** A playlist or station as a picker shows it: `group` tells same-named items apart. */
-export type MediaChoice = { uri: string; name: string; group: string; favorite: boolean };
+/** A playlist, station, album or artist as a picker shows it: `group` tells same-named items apart. */
+export type MediaChoice = { uri: string; name: string; group: string; favorite: boolean; /** Picker text when it should say more than the name (album with its artist). */ label?: string };
 
 /** Networks behind the Digitally Imported provider, by the prefix on their station ids. */
 const RADIO_NETWORKS: Record<string, string> = { di: "DI.FM", radiotunes: "RadioTunes", rockradio: "RockRadio", jazzradio: "JazzRadio", classicalradio: "ClassicalRadio", zenradio: "ZenRadio" };
@@ -49,6 +52,8 @@ export class Session extends EventEmitter {
 	providers = new Map<string, string>();
 	/** Server clock minus ours, in seconds. */
 	clockOffset = 0;
+	/** The player chosen on this deck, for keys set to follow it. */
+	selectedPlayerId?: string;
 
 	constructor(private readonly log: Logger) {
 		super();
@@ -246,8 +251,31 @@ export class Session extends EventEmitter {
 			.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
 	}
 
+	/** A player by id, or the deck's selected player for the `selected` sentinel. */
 	player(id: string | undefined): Player | undefined {
+		if (id === SELECTED) id = this.selectedPlayerId;
 		return id ? this.players.get(id) : undefined;
+	}
+
+	/** Changes the deck's selected player; every key following it redraws. */
+	select(id: string | undefined): void {
+		if (id === this.selectedPlayerId) return;
+		this.selectedPlayerId = id;
+		this.emit("selected", id);
+		this.emit("change");
+	}
+
+	/** Whether a player is grouped under a target: synced to it, or one of its members. */
+	isGrouped(player: Player, target: Player): boolean {
+		if (player.player_id === target.player_id) return false;
+		if (player.synced_to === target.player_id || player.active_group === target.player_id) return true;
+		return (target.group_members ?? []).includes(player.player_id);
+	}
+
+	/** Players a player may group with, from the server's `can_group_with` (ids or provider instances). */
+	groupTargets(player: Player): Player[] {
+		const allowed = new Set(player.can_group_with ?? []);
+		return this.playerList(true).filter((other) => other.player_id !== player.player_id && (allowed.has(other.player_id) || allowed.has(other.provider) || other.type === "group"));
 	}
 
 	/**
@@ -297,7 +325,20 @@ export class Session extends EventEmitter {
 		}, true);
 	}
 
-	private async library(kind: "playlist" | "radio", groupOf: (item: MediaItem, mapping: MediaItem["provider_mappings"] extends (infer M)[] | undefined ? M | undefined : never) => string, everyMapping = false): Promise<MediaChoice[]> {
+	/** Every library album, labelled with its artists, grouped by provider. */
+	albums(): Promise<MediaChoice[]> {
+		return this.library("album", (item, mapping) => (mapping ? (this.providers.get(mapping.provider_instance) ?? mapping.provider_domain) : item.provider), false, (item) => {
+			const artists = item.artists?.map((artist) => artist.name).join(", ");
+			return artists ? `${item.name} — ${artists}` : item.name;
+		});
+	}
+
+	/** Every library artist, grouped by provider; the key turns one into an artist radio. */
+	artists(): Promise<MediaChoice[]> {
+		return this.library("artist", (item, mapping) => (mapping ? (this.providers.get(mapping.provider_instance) ?? mapping.provider_domain) : item.provider));
+	}
+
+	private async library(kind: "playlist" | "radio" | "album" | "artist", groupOf: (item: MediaItem, mapping: MediaItem["provider_mappings"] extends (infer M)[] | undefined ? M | undefined : never) => string, everyMapping = false, labelOf?: (item: MediaItem) => string): Promise<MediaChoice[]> {
 		const items = await this.command<MediaItem[]>(`music/${kind}s/library_items`, { limit: 5000, order_by: "sort_name" });
 		const choices: MediaChoice[] = [];
 		for (const item of items) {
@@ -305,7 +346,7 @@ export class Session extends EventEmitter {
 			const mappings = (item.provider_mappings ?? []).filter((mapping) => mapping.available !== false);
 			const considered = everyMapping ? (mappings.length ? mappings : [undefined]) : [mappings[0] ?? item.provider_mappings?.[0]];
 			const groups = new Set(considered.map((mapping) => groupOf(item, mapping)));
-			for (const group of groups) choices.push({ uri: item.uri, name: item.name, group, favorite: item.favorite === true });
+			for (const group of groups) choices.push({ uri: item.uri, name: item.name, group, favorite: item.favorite === true, label: labelOf?.(item) });
 		}
 		return choices.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }) || a.group.localeCompare(b.group));
 	}

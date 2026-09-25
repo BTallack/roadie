@@ -3,7 +3,7 @@
 	"Version": "0.1.0.0",
 	"Author": "Tallack Media",
 	"Description": "Roadie puts your Music Assistant players on Stream Deck: now playing, play/pause, skip, volume, and keys that load your playlists. Talks straight to your own Music Assistant server.",
-	"URL": "https://github.com/tallackmedia/roadie",
+	"URL": "https://github.com/BTallack/roadie",
 	"Category": "Roadie for Music Assistant",
 	"CategoryIcon": "imgs/plugin/category-icon",
 	"Icon": "imgs/plugin/marketplace",
@@ -13,8 +13,14 @@
 		"MinimumVersion": "7.1"
 	},
 	"OS": [
-		{ "Platform": "mac", "MinimumVersion": "12" },
-		{ "Platform": "windows", "MinimumVersion": "10" }
+		{
+			"Platform": "mac",
+			"MinimumVersion": "12"
+		},
+		{
+			"Platform": "windows",
+			"MinimumVersion": "10"
+		}
 	],
 	"Nodejs": {
 		"Version": "24",
@@ -28,11 +34,23 @@
 			"Icon": "imgs/actions/nowplaying",
 			"Tooltip": "Artwork, title and artist for one player. Press to play or pause. On a dial: turn for volume.",
 			"PropertyInspectorPath": "ui/nowplaying.html",
-			"Controllers": ["Keypad", "Encoder"],
-			"States": [{ "Image": "imgs/actions/nowplaying-key", "ShowTitle": false }],
+			"Controllers": [
+				"Keypad",
+				"Encoder"
+			],
+			"States": [
+				{
+					"Image": "imgs/actions/nowplaying-key",
+					"ShowTitle": false
+				}
+			],
 			"Encoder": {
 				"layout": "$B1",
-				"TriggerDescription": { "Rotate": "Volume", "Push": "Play / pause", "Touch": "Play / pause" }
+				"TriggerDescription": {
+					"Rotate": "Volume",
+					"Push": "Play / pause",
+					"Touch": "Play / pause"
+				}
 			}
 		},
 		{
@@ -41,8 +59,15 @@
 			"Icon": "imgs/actions/playpause",
 			"Tooltip": "Plays or pauses the player.",
 			"PropertyInspectorPath": "ui/player.html",
-			"Controllers": ["Keypad"],
-			"States": [{ "Image": "imgs/actions/playpause-key", "ShowTitle": false }]
+			"Controllers": [
+				"Keypad"
+			],
+			"States": [
+				{
+					"Image": "imgs/actions/playpause-key",
+					"ShowTitle": false
+				}
+			]
 		},
 		{
 			"Name": "Next track",
@@ -50,8 +75,15 @@
 			"Icon": "imgs/actions/next",
 			"Tooltip": "Skips to the next track.",
 			"PropertyInspectorPath": "ui/player.html",
-			"Controllers": ["Keypad"],
-			"States": [{ "Image": "imgs/actions/next-key", "ShowTitle": false }]
+			"Controllers": [
+				"Keypad"
+			],
+			"States": [
+				{
+					"Image": "imgs/actions/next-key",
+					"ShowTitle": false
+				}
+			]
 		},
 		{
 			"Name": "Previous track",
@@ -59,8 +91,15 @@
 			"Icon": "imgs/actions/previous",
 			"Tooltip": "Goes back to the previous track.",
 			"PropertyInspectorPath": "ui/player.html",
-			"Controllers": ["Keypad"],
-			"States": [{ "Image": "imgs/actions/previous-key", "ShowTitle": false }]
+			"Controllers": [
+				"Keypad"
+			],
+			"States": [
+				{
+					"Image": "imgs/actions/previous-key",
+					"ShowTitle": false
+				}
+			]
 		},
 		{
 			"Name": "Stop",
@@ -68,8 +107,15 @@
 			"Icon": "imgs/actions/stop",
 			"Tooltip": "Stops playback on the player.",
 			"PropertyInspectorPath": "ui/player.html",
-			"Controllers": ["Keypad"],
-			"States": [{ "Image": "imgs/actions/stop-key", "ShowTitle": false }]
+			"Controllers": [
+				"Keypad"
+			],
+			"States": [
+				{
+					"Image": "imgs/actions/stop-key",
+					"ShowTitle": false
+				}
+			]
 		},
 		{
 			"Name": "Volume",
@@ -77,11 +123,23 @@
 			"Icon": "imgs/actions/volume",
 			"Tooltip": "Volume up, volume down, mute, or the current level as a key; on a dial, turn for volume and press to mute.",
 			"PropertyInspectorPath": "ui/volume.html",
-			"Controllers": ["Keypad", "Encoder"],
-			"States": [{ "Image": "imgs/actions/volume-key", "ShowTitle": false }],
+			"Controllers": [
+				"Keypad",
+				"Encoder"
+			],
+			"States": [
+				{
+					"Image": "imgs/actions/volume-key",
+					"ShowTitle": false
+				}
+			],
 			"Encoder": {
 				"layout": "$B1",
-				"TriggerDescription": { "Rotate": "Volume", "Push": "Mute / unmute", "Touch": "Mute / unmute" }
+				"TriggerDescription": {
+					"Rotate": "Volume",
+					"Push": "Mute / unmute",
+					"Touch": "Mute / unmute"
+				}
 			}
 		},
 		{
@@ -90,8 +148,15 @@
 			"Icon": "imgs/actions/playlist",
 			"Tooltip": "Loads a playlist on a player. Shows the playlist's artwork, lit while it's playing.",
 			"PropertyInspectorPath": "ui/playlist.html",
-			"Controllers": ["Keypad"],
-			"States": [{ "Image": "imgs/actions/playlist-key", "ShowTitle": false }]
+			"Controllers": [
+				"Keypad"
+			],
+			"States": [
+				{
+					"Image": "imgs/actions/playlist-key",
+					"ShowTitle": false
+				}
+			]
 		},
 		{
 			"Name": "Radio station",
@@ -99,8 +164,152 @@
 			"Icon": "imgs/actions/radio",
 			"Tooltip": "Loads a radio station on a player. Shows the station's artwork, lit while it's playing.",
 			"PropertyInspectorPath": "ui/radio.html",
-			"Controllers": ["Keypad"],
-			"States": [{ "Image": "imgs/actions/radio-key", "ShowTitle": false }]
+			"Controllers": [
+				"Keypad"
+			],
+			"States": [
+				{
+					"Image": "imgs/actions/radio-key",
+					"ShowTitle": false
+				}
+			]
+		},
+		{
+			"Name": "Album",
+			"UUID": "media.tallack.roadie.album",
+			"Icon": "imgs/actions/album",
+			"Tooltip": "Loads an album on a player. Shows its artwork, lit while it's playing.",
+			"PropertyInspectorPath": "ui/album.html",
+			"Controllers": [
+				"Keypad"
+			],
+			"States": [
+				{
+					"Image": "imgs/actions/album-key",
+					"ShowTitle": false
+				}
+			]
+		},
+		{
+			"Name": "Artist radio",
+			"UUID": "media.tallack.roadie.artistradio",
+			"Icon": "imgs/actions/artistradio",
+			"Tooltip": "Starts a never-ending mix seeded by one artist.",
+			"PropertyInspectorPath": "ui/artistradio.html",
+			"Controllers": [
+				"Keypad"
+			],
+			"States": [
+				{
+					"Image": "imgs/actions/artistradio-key",
+					"ShowTitle": false
+				}
+			]
+		},
+		{
+			"Name": "Shuffle",
+			"UUID": "media.tallack.roadie.shuffle",
+			"Icon": "imgs/actions/shuffle",
+			"Tooltip": "Turns shuffle on or off for the player's queue.",
+			"PropertyInspectorPath": "ui/player.html",
+			"Controllers": [
+				"Keypad"
+			],
+			"States": [
+				{
+					"Image": "imgs/actions/shuffle-key",
+					"ShowTitle": false
+				}
+			]
+		},
+		{
+			"Name": "Repeat",
+			"UUID": "media.tallack.roadie.repeat",
+			"Icon": "imgs/actions/repeat",
+			"Tooltip": "Steps repeat through off, all and one for the player's queue.",
+			"PropertyInspectorPath": "ui/player.html",
+			"Controllers": [
+				"Keypad"
+			],
+			"States": [
+				{
+					"Image": "imgs/actions/repeat-key",
+					"ShowTitle": false
+				}
+			]
+		},
+		{
+			"Name": "Favourite",
+			"UUID": "media.tallack.roadie.favourite",
+			"Icon": "imgs/actions/favourite",
+			"Tooltip": "A heart for what's playing: press to add it to your favourites. Needs a user with library access.",
+			"PropertyInspectorPath": "ui/player.html",
+			"Controllers": [
+				"Keypad"
+			],
+			"States": [
+				{
+					"Image": "imgs/actions/favourite-key",
+					"ShowTitle": false
+				}
+			]
+		},
+		{
+			"Name": "Group",
+			"UUID": "media.tallack.roadie.group",
+			"Icon": "imgs/actions/group",
+			"Tooltip": "Joins the player to another player or group; press again to leave. Lit while grouped.",
+			"PropertyInspectorPath": "ui/group.html",
+			"Controllers": [
+				"Keypad"
+			],
+			"States": [
+				{
+					"Image": "imgs/actions/group-key",
+					"ShowTitle": false
+				}
+			]
+		},
+		{
+			"Name": "Move queue",
+			"UUID": "media.tallack.roadie.transfer",
+			"Icon": "imgs/actions/transfer",
+			"Tooltip": "Moves the player's queue to another player and carries on there.",
+			"PropertyInspectorPath": "ui/transfer.html",
+			"Controllers": [
+				"Keypad"
+			],
+			"States": [
+				{
+					"Image": "imgs/actions/transfer-key",
+					"ShowTitle": false
+				}
+			]
+		},
+		{
+			"Name": "Select player",
+			"UUID": "media.tallack.roadie.select",
+			"Icon": "imgs/actions/select",
+			"Tooltip": "Chooses the deck's player, for keys set to 'Selected on this deck'. On a dial: turn to step through players, press to play or pause.",
+			"PropertyInspectorPath": "ui/select.html",
+			"Controllers": [
+				"Keypad",
+				"Encoder"
+			],
+			"States": [
+				{
+					"Image": "imgs/actions/select-key",
+					"ShowTitle": false
+				}
+			],
+			"Encoder": {
+				"layout": "$B1",
+				"TriggerDescription": {
+					"Rotate": "Choose player",
+					"Push": "Play / pause",
+					"Touch": "Play / pause"
+				}
+			}
 		}
 	]
 }

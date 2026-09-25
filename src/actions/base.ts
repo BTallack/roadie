@@ -3,7 +3,8 @@ import type { JsonValue } from "@elgato/utils";
 
 import type { Player, PlayerQueue } from "../ma/types";
 import { messageKey, withTick } from "../render";
-import { connectionSummary, rememberDefaults, seedSettings, session } from "../shared";
+import { SELECTED } from "../ma/session";
+import { connectionSummary, playerItems, rememberDefaults, seedSettings, session } from "../shared";
 
 /** Every key names the player it's about. */
 export type PlayerSettings = {
@@ -84,8 +85,13 @@ export abstract class PlayerAction<T extends PlayerSettings = PlayerSettings> ex
 	override async onSendToPlugin(ev: SendToPluginEvent<JsonValue, T>): Promise<void> {
 		const payload = ev.payload as { event?: string } | undefined;
 		if (payload?.event === "getPlayers") {
-			const items = session.playerList().map((player) => ({ label: player.type === "group" ? `${player.name} (group)` : player.name, value: player.player_id }));
-			await streamDeck.ui.sendToPropertyInspector({ event: "getPlayers", items });
+			await streamDeck.ui.sendToPropertyInspector({ event: "getPlayers", items: playerItems() });
+		} else if (payload?.event === "getTargets") {
+			// Players the key's own player may group with.
+			const settings = await ev.action.getSettings();
+			const player = session.player(settings.playerId);
+			const items = (player ? session.groupTargets(player) : session.playerList()).map((target) => ({ label: target.type === "group" ? `${target.name} (group)` : target.name, value: target.player_id }));
+			await streamDeck.ui.sendToPropertyInspector({ event: "getTargets", items });
 		} else if (payload?.event === "getConnection") {
 			await streamDeck.ui.sendToPropertyInspector({
 				event: "connection",
@@ -147,6 +153,7 @@ export abstract class PlayerAction<T extends PlayerSettings = PlayerSettings> ex
 				if (session.players.size === 0) return messageKey("Offline", "Retrying…", "#FF9500");
 		}
 		if (!settings.playerId) return messageKey("Choose", "a player");
+		if (settings.playerId === SELECTED) return messageKey("No player", "selected yet");
 		return messageKey("Not found", "Pick again");
 	}
 

@@ -30,6 +30,10 @@ found by mDNS later).
   Stations come from `music/radios/library_items`; the Digitally Imported provider bundles
   six networks, told apart by the prefix on each station id (`jazzradio:`, `di:`…), so the
   picker groups by network, favourites first. Brennan has 329 stations, 31 favourites.
+- 25 Sep 2026, night: the rest of the wishlist. Shuffle, Repeat, Favourite, Group, Move queue,
+  Album, Artist radio, and Select player (key and dial) with the "Selected on this deck"
+  entry in every player picker. Favourites need `library.write`, which the guest role
+  lacks, so the README says to use the `user` role for that key. Shipped to GitHub.
 - Brennan's server: Music Assistant 2.10.4 (schema 65), Home Assistant add-on,
   `http://192.168.1.10:8095`. 17 players (Sonos, three sync groups), 98 playlists across
   Spotify, Apple Music, Plex and Music Assistant's own.

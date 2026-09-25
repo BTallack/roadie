@@ -29,5 +29,10 @@
   },
   "dependencies": {
     "@elgato/streamdeck": "3.0.0"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/BTallack/roadie.git"
+  },
+  "homepage": "https://github.com/BTallack/roadie"
 }

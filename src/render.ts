@@ -187,11 +187,13 @@ export function nowPlayingKey(name: string | null, art: Artwork | undefined, now
 	return svg(body);
 }
 
-export type MediaKind = "playlist" | "radio";
+export type MediaKind = "playlist" | "radio" | "album" | "artist";
 
 const MEDIA_GLYPHS: Record<MediaKind, (color: string) => string> = {
 	playlist: (c) => `<g stroke="${c}" stroke-width="6" stroke-linecap="round"><path d="M34 46 h56 M34 66 h56 M34 86 h34"/></g><path d="M98 82 v-24 l16 8" fill="none" stroke="${c}" stroke-width="6" stroke-linejoin="round" stroke-linecap="round"/>`,
 	radio: (c) => `<circle cx="72" cy="66" r="9" fill="${c}"/><path d="M72 75 v30 M52 46 q-14 20 0 40 M92 46 q14 20 0 40 M40 34 q-22 32 0 64 M104 34 q22 32 0 64" fill="none" stroke="${c}" stroke-width="6" stroke-linecap="round"/>`,
+	album: (c) => `<circle cx="72" cy="66" r="34" fill="none" stroke="${c}" stroke-width="6"/><circle cx="72" cy="66" r="9" fill="${c}"/><circle cx="72" cy="66" r="20" fill="none" stroke="${c}" stroke-width="3" opacity="0.5"/>`,
+	artist: (c) => `<circle cx="72" cy="52" r="16" fill="${c}"/><path d="M40 104 q0 -28 32 -28 q32 0 32 28 z" fill="${c}"/><path d="M104 40 q14 12 0 24 M114 30 q22 22 0 44" fill="none" stroke="${c}" stroke-width="5" stroke-linecap="round"/>`,
 };
 
 /** A playlist's or station's artwork and name; a coloured frame while the player is on it. */
@@ -225,4 +227,62 @@ export function withTick(image: string): string {
 	const markup = decodeURIComponent(image.slice(prefix.length));
 	const badge = `<circle cx="126" cy="18" r="13" fill="${COLORS.playing}" stroke="#000000" stroke-opacity="0.35" stroke-width="2"/><path d="M119 18.5 l5 5 l9 -11" fill="none" stroke="#FFFFFF" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>`;
 	return prefix + encodeURIComponent(markup.replace(/<\/svg>\s*$/, `${badge}</svg>`));
+}
+
+/** Shuffle: crossed arrows, lit while on; grey when the queue can't be shuffled. */
+export function shuffleKey(name: string | null, on: boolean, enabled: boolean, showCaption = true): string {
+	const color = !enabled ? COLORS.disabled : on ? COLORS.playing : COLORS.text;
+	const glyph =
+		`<path d="M34 46 h16 l30 40 h18 M34 86 h16 l30 -40 h18" fill="none" stroke="${color}" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>` +
+		`<path d="M92 36 l12 10 l-12 10 M92 76 l12 10 l-12 10" fill="none" stroke="${color}" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>`;
+	return glyphKey(glyph, name, showCaption ? (enabled ? (on ? "Shuffle on" : "Shuffle off") : "Shuffle") : null, enabled ? COLORS.text : COLORS.secondary);
+}
+
+/** Repeat: a loop, lit for all, with a "1" for one; grey when the queue can't repeat. */
+export function repeatKey(name: string | null, mode: string, enabled: boolean, showCaption = true): string {
+	const on = mode === "one" || mode === "all";
+	const color = !enabled ? COLORS.disabled : on ? COLORS.playing : COLORS.text;
+	let glyph =
+		`<path d="M50 50 h44 a12 12 0 0 1 12 12 v8 a12 12 0 0 1 -12 12 h-44 a12 12 0 0 1 -12 -12 v-8 a12 12 0 0 1 12 -12" fill="none" stroke="${color}" stroke-width="6" stroke-linecap="round"/>` +
+		`<path d="M42 48 l8 -10 M42 48 l8 10 M102 84 l-8 -10 M102 84 l-8 10" fill="none" stroke="${color}" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>`;
+	if (mode === "one") glyph += `<rect x="60" y="54" width="24" height="24" rx="6" fill="${BG}"/><text x="72" y="72" text-anchor="middle" font-family="${FONT}" font-size="20" font-weight="800" fill="${color}">1</text>`;
+	const caption = !enabled ? "Repeat" : mode === "one" ? "Repeat one" : mode === "all" ? "Repeat all" : "Repeat off";
+	return glyphKey(glyph, name, showCaption ? caption : null, enabled ? COLORS.text : COLORS.secondary);
+}
+
+/** A heart, filled while the current track is a favourite; grey when nothing is playing. */
+export function heartKey(name: string | null, favorite: boolean | null, showCaption = true): string {
+	const color = favorite === null ? COLORS.disabled : favorite ? COLORS.failed : COLORS.text;
+	const heart = `<path d="M72 98 l-30 -28 a17 17 0 0 1 30 -22 a17 17 0 0 1 30 22 z" fill="${favorite ? color : "none"}" stroke="${color}" stroke-width="6" stroke-linejoin="round"/>`;
+	return glyphKey(heart, name, showCaption ? (favorite === null ? "Favourite" : favorite ? "Favourited" : "Favourite") : null, favorite === null ? COLORS.secondary : COLORS.text);
+}
+
+/** Two speakers with a link, lit while the player is grouped under the target. */
+export function groupKey(name: string | null, targetName: string | null, grouped: boolean, enabled: boolean, showCaption = true): string {
+	const color = !enabled ? COLORS.disabled : grouped ? COLORS.playing : COLORS.text;
+	const speaker = (x: number) => `<rect x="${x}" y="42" width="26" height="48" rx="6" fill="none" stroke="${color}" stroke-width="5"/><circle cx="${x + 13}" cy="72" r="7" fill="${color}"/><circle cx="${x + 13}" cy="54" r="3.5" fill="${color}"/>`;
+	const link = grouped ? `<path d="M64 66 h16" stroke="${color}" stroke-width="5" stroke-linecap="round"/>` : `<path d="M64 66 h5 M75 66 h5" stroke="${color}" stroke-width="5" stroke-linecap="round" opacity="0.6"/>`;
+	const glyph = speaker(30) + speaker(88) + link;
+	const caption = !targetName ? "Group" : grouped ? "Grouped" : `Join ${targetName}`;
+	return glyphKey(glyph, name, showCaption ? caption : null, enabled ? COLORS.text : COLORS.secondary);
+}
+
+/** An arrow from one queue to another player. */
+export function transferKey(name: string | null, targetName: string | null, enabled: boolean, showCaption = true): string {
+	const color = !enabled ? COLORS.disabled : COLORS.accent;
+	const glyph =
+		`<rect x="30" y="48" width="30" height="36" rx="6" fill="none" stroke="${color}" stroke-width="5"/>` +
+		`<path d="M66 66 h36 M92 54 l12 12 l-12 12" fill="none" stroke="${color}" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>`;
+	return glyphKey(glyph, name, showCaption ? (targetName ? `To ${targetName}` : "Move queue") : null, enabled ? COLORS.text : COLORS.secondary);
+}
+
+/** A player as a room button: its name large, its state, framed while it's the deck's selection. */
+export function selectKey(playerName: string, state: PlaybackState | undefined, available: boolean, selected: boolean, nowPlaying: string | null): string {
+	const color = stateColor(state, available);
+	let body = `<circle cx="72" cy="48" r="12" fill="${color}"/>`;
+	body += label(playerName, 88, 20, COLORS.text, 700);
+	if (nowPlaying) body += label(nowPlaying, 114, 13, COLORS.secondary, 500);
+	else body += label(stateLabel(state, available), 114, 13, COLORS.secondary, 500);
+	if (selected) body += `<rect x="3" y="3" width="138" height="138" rx="14" fill="none" stroke="${COLORS.accent}" stroke-width="6"/>`;
+	return svg(body);
 }

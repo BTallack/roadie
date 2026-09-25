@@ -4,7 +4,7 @@
 import { writeFileSync } from "node:fs";
 
 import { Session } from "../src/ma/session";
-import { nowPlayingKey, playPauseKey, mediaKey, transportKey, volumeKey, messageKey } from "../src/render";
+import { groupKey, heartKey, mediaKey, messageKey, nowPlayingKey, playPauseKey, repeatKey, selectKey, shuffleKey, transferKey, transportKey, volumeKey } from "../src/render";
 import { canTransport, playbackState, volumeOf } from "../src/shared";
 
 const session = new Session({ info: console.log, warn: console.warn });
@@ -65,6 +65,21 @@ for (const player of players) {
 		"playlist-noname": mediaKey("playlist", null, playlistArt, playlist?.name ?? "Choose a playlist", false, !!playlist),
 		"playlist-art": mediaKey("playlist", null, playlistArt, null, false, !!playlist),
 		"radio-empty": mediaKey("radio", player.name, undefined, "Choose a station", false, false),
+		"album-empty": mediaKey("album", player.name, undefined, "Choose an album", false, false),
+		"artist-empty": mediaKey("artist", player.name, undefined, "Choose an artist", false, false),
+		shuffle: shuffleKey(player.name, queue?.shuffle_enabled === true, !!queue),
+		"shuffle-on": shuffleKey(player.name, true, true),
+		repeat: repeatKey(player.name, queue?.repeat_mode ?? "off", !!queue),
+		"repeat-all": repeatKey(player.name, "all", true),
+		"repeat-one": repeatKey(player.name, "one", true),
+		favourite: heartKey(player.name, false),
+		"favourite-on": heartKey(player.name, true),
+		"favourite-none": heartKey(player.name, null),
+		group: groupKey(player.name, "Kitchen", false, true),
+		"group-on": groupKey(player.name, "Kitchen", true, true),
+		transfer: transferKey(player.name, "Kitchen", true),
+		select: selectKey(player.name, state, player.available, false, title),
+		"select-on": selectKey(player.name, state, player.available, true, title),
 		radio: mediaKey("radio", player.name, radioArt, radio?.name ?? "Choose a station", radio ? "playing" : false, !!radio),
 	};
 	for (const [name, url] of Object.entries(keys)) write(`${slug}-${name}`, url);

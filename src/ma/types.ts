@@ -55,6 +55,7 @@ export type Player = {
 	group_volume?: number | null;
 	group_volume_muted?: boolean | null;
 	group_members?: string[];
+	can_group_with?: string[];
 	synced_to?: string | null;
 	active_group?: string | null;
 	/** A queue id when Music Assistant is the source, otherwise a native source id. */

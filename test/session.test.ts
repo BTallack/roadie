@@ -40,6 +40,10 @@ before(async () => {
 					return send([queue("Office", { state: "playing", sources: [{ uri: "library://playlist/17", name: "Mix" }], current_item: { queue_id: "Office", queue_item_id: "x", name: "Song", duration: 200 }, elapsed_time: 50, elapsed_time_last_updated: Date.now() / 1000 + 100 }), queue("Kitchen"), queue("Everywhere")]);
 				case "providers":
 					return send([{ instance_id: "spotify--1", name: "Spotify", type: "music" }, { instance_id: "apple--1", name: "Apple Music", type: "music" }, { instance_id: "tunein--1", name: "Tune-In Radio", type: "music" }]);
+				case "music/albums/library_items":
+					return send([{ name: "Rumours", uri: "library://album/3", provider: "library", artists: [{ name: "Fleetwood Mac" }], provider_mappings: [{ item_id: "x", provider_domain: "spotify", provider_instance: "spotify--1" }] }]);
+				case "music/artists/library_items":
+					return send([{ name: "Fleetwood Mac", uri: "library://artist/9", provider: "library", favorite: true, provider_mappings: [{ item_id: "y", provider_domain: "spotify", provider_instance: "spotify--1" }] }]);
 				case "music/radios/library_items":
 					return send([
 						{ name: "Bass Jazz", uri: "library://radio/241", provider: "library", favorite: true, provider_mappings: [{ item_id: "jazzradio:bassjazz", provider_domain: "digitally_incorporated", provider_instance: "digitally_incorporated" }] },
@@ -122,6 +126,31 @@ test("groups radio stations by network, listing multi-network stations under eac
 	await until(() => session.state === "live");
 	const radios = await session.radios();
 	assert.deepEqual(radios.map((r) => `${r.name} (${r.group})${r.favorite ? "*" : ""}`), ["Ambient (DI.FM)", "Ambient (ZenRadio)", "Bass Jazz (JazzRadio)*", "CBC Radio One (Tune-In Radio)"]);
+	session.configure(undefined, undefined);
+});
+
+test("labels albums with their artist and lists artists for artist radio", async () => {
+	const session = new Session(quiet);
+	session.configure(base, "good");
+	await until(() => session.state === "live");
+	assert.deepEqual((await session.albums()).map((a) => `${a.label} [${a.group}]`), ["Rumours — Fleetwood Mac [Spotify]"]);
+	assert.deepEqual((await session.artists()).map((a) => `${a.name}${a.favorite ? "*" : ""} <${a.uri}>`), ["Fleetwood Mac* <library://artist/9>"]);
+	session.configure(undefined, undefined);
+});
+
+test("selection: keys following the deck's player resolve it, grouping is read from sync state", async () => {
+	const session = new Session(quiet);
+	session.configure(base, "good");
+	await until(() => session.state === "live");
+	assert.equal(session.player("selected"), undefined);
+	let changes = 0;
+	session.on("selected", () => changes++);
+	session.select("Office");
+	session.select("Office");
+	assert.equal(changes, 1);
+	assert.equal(session.player("selected")?.name, "Office");
+	assert.ok(session.isGrouped(session.player("Kitchen")!, session.player("Office")!));
+	assert.ok(!session.isGrouped(session.player("Office")!, session.player("Kitchen")!));
 	session.configure(undefined, undefined);
 });
 
