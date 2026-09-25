@@ -5,7 +5,7 @@ import { writeFileSync } from "node:fs";
 
 import { Session } from "../src/ma/session";
 import { groupKey, heartKey, mediaKey, messageKey, nowPlayingKey, playPauseKey, repeatKey, selectKey, shuffleKey, transferKey, transportKey, volumeKey } from "../src/render";
-import { canTransport, playbackState, volumeOf } from "../src/shared";
+import { canTransport, nowPlayingOf, playbackState, volumeOf } from "../src/shared";
 
 const session = new Session({ info: console.log, warn: console.warn });
 session.configure(process.env.MA_URL, process.env.MA_TOKEN);
@@ -25,8 +25,7 @@ for (const player of players) {
 	const state = playbackState(player, queue);
 	const slug = player.name.replace(/\W+/g, "-");
 	const item = queue?.current_item;
-	const title = item?.media_item?.name ?? item?.name ?? player.current_media?.title ?? null;
-	const artist = item?.media_item?.artists?.map((a) => a.name).join(", ") ?? player.current_media?.artist ?? null;
+	const { track: title, artist } = nowPlayingOf(player, queue);
 	const art = await session.artwork(item?.media_item ?? item, item ? undefined : player.current_media?.image_url);
 	const { level, muted } = volumeOf(player);
 	const source = (queue?.sources ?? queue?.radio_source ?? [])[0];

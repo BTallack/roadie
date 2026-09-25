@@ -32,6 +32,14 @@
 	<sdpi-item label="Text">
 		<sdpi-checkbox setting="scroll" label="Scroll long track names" default="true"></sdpi-checkbox>
 	</sdpi-item>
+	<sdpi-item label="What's playing">
+		<sdpi-select setting="detail" default="track">
+			<option value="track">Track, then artist</option>
+			<option value="artist">Artist, then track</option>
+			<option value="source">Station or playlist, then artist and track</option>
+			<option value="none">Nothing, just the player</option>
+		</sdpi-select>
+	</sdpi-item>
 	<sdpi-item label="Player state">
 		<sdpi-select setting="stateStyle" default="dot">
 			<option value="dot">A dot above the name</option>

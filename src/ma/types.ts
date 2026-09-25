@@ -109,6 +109,8 @@ export type QueueItem = {
 	index?: number;
 	media_item?: MediaItem | null;
 	image?: MediaItemImage | null;
+	/** For streams: what the station says is playing, usually "Artist - Track". */
+	streamdetails?: { stream_title?: string | null } | null;
 };
 
 export type RepeatMode = "off" | "one" | "all" | string;

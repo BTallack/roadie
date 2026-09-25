@@ -341,7 +341,7 @@ export type SelectLook = {
  * dot or a border, and up to two lines of detail: the track and artist, or what it's
  * playing from.
  */
-export function selectKey(playerName: string, state: PlaybackState | undefined, available: boolean, details: string[], look: SelectLook): string {
+export function selectKey(playerName: string, state: PlaybackState | undefined, available: boolean, details: string[] | null, look: SelectLook): string {
 	const color = stateColor(state, available);
 	let body = "";
 	if (look.position) body += label(look.position, 20, 12, COLORS.secondary, 600, 132, "end", 120);
@@ -349,15 +349,17 @@ export function selectKey(playerName: string, state: PlaybackState | undefined, 
 	const size = lines.length === 1 ? shrink(lines[0], 20, 15) : Math.min(shrink(lines[0], 18, 13), shrink(lines[1], 18, 13));
 	// Where the name sits: under the dot, or higher when the border carries the state.
 	let y = look.border ? (lines.length === 1 ? 58 : 48) : lines.length === 1 ? 88 : 80;
-	if (!look.border) body += `<circle cx="72" cy="48" r="12" fill="${color}"/>`;
+	if (details === null) y = look.border ? (lines.length === 1 ? 79 : 70) : lines.length === 1 ? 96 : 88;
+	if (!look.border) body += `<circle cx="72" cy="${details === null ? 52 : 48}" r="12" fill="${color}"/>`;
 	for (const line of lines) {
 		body += label(line, y, size, COLORS.text, 700);
 		y += size + 3;
 	}
-	const shown = details.filter((line) => line.trim().length > 0);
-	if (shown.length === 0) shown.push(stateLabel(state, available));
+	const shown = (details ?? []).filter((line) => line.trim().length > 0);
+	if (shown.length === 0 && details !== null) shown.push(stateLabel(state, available));
 	// Room for two detail lines with the border, or with a short name; otherwise one.
 	const room = look.border || lines.length === 1 ? 2 : 1;
+	// With nothing to show under it, the name sits at the key's centre.
 	y += 8;
 	for (const line of shown.slice(0, room)) {
 		body += look.scroll === false ? label(line, y + 4, 13, COLORS.secondary, 500) : marquee(line, y + 4, 13, COLORS.secondary, 500);

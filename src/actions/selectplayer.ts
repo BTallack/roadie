@@ -1,7 +1,7 @@
 import { action, type DialDownEvent, type DialRotateEvent, type DidReceiveSettingsEvent, type KeyDownEvent, type TouchTapEvent, type WillAppearEvent } from "@elgato/streamdeck";
 
 import { artworkURL, overflows, selectKey, stateColor } from "../render";
-import { canTransport, playbackState, selectPlayer, session, volumeOf } from "../shared";
+import { canTransport, nowPlayingOf, playbackState, selectPlayer, session, volumeOf } from "../shared";
 import { PlayerAction, type KeyContext, type PlayerSettings } from "./base";
 
 type Settings = PlayerSettings & {
@@ -15,6 +15,8 @@ type Settings = PlayerSettings & {
 	stateStyle?: "dot" | "border";
 	/** Scroll detail lines that don't fit (default on). */
 	scroll?: boolean;
+	/** The two lines under the name: track then artist, artist then track, source then track, or nothing. */
+	detail?: "track" | "artist" | "source" | "none";
 };
 
 /**
@@ -54,6 +56,21 @@ export class SelectPlayerAction extends PlayerAction<Settings> {
 		}
 	}
 
+	/** The lines under the name, as the key is set to show them; null hides them. */
+	private details(playing: ReturnType<typeof nowPlayingOf>, detail: NonNullable<Settings["detail"]>): string[] | null {
+		const { track, artist, source } = playing;
+		if (detail === "none") return null;
+		if (!track && !source) return [];
+		switch (detail) {
+			case "artist":
+				return [artist ?? track ?? "", artist ? (track ?? "") : ""];
+			case "source":
+				return [source ?? track ?? "", source ? [artist, track].filter(Boolean).join(" – ") : ""];
+			default:
+				return [track ?? source ?? "", track ? (artist ?? "") : ""];
+		}
+	}
+
 	/** The cycling key's list, in ticked order, keeping only players that still exist. */
 	private cycle(settings: Settings): string[] {
 		return (settings.players ?? []).filter((id) => session.players.has(id));
@@ -62,17 +79,13 @@ export class SelectPlayerAction extends PlayerAction<Settings> {
 	protected override async draw({ action, settings, player, queue }: KeyContext<Settings>): Promise<void> {
 		const state = playbackState(player, queue);
 		const item = queue?.current_item;
-		const title = item?.media_item?.name ?? item?.name ?? player.current_media?.title ?? null;
+		const playing = nowPlayingOf(player, queue);
+		const title = playing.track ?? playing.source;
 		if (action.isKey()) {
-			// Detail: the track and its artist; on a stream, the station and what it's playing;
-			// otherwise what the queue was loaded from.
-			const artist = item?.media_item?.artists?.map((artist) => artist.name).join(", ") ?? player.current_media?.artist ?? null;
-			const streamTitle = item && item.media_item && item.name !== item.media_item.name ? item.name : null;
-			const source = (queue?.sources ?? queue?.radio_source ?? [])[0]?.name ?? null;
-			const details = title ? [title, artist ?? streamTitle ?? source ?? ""] : [];
+			const details = this.details(playing, settings.detail ?? "track");
 			const border = settings.stateStyle === "border";
 			const scroll = settings.scroll !== false;
-			this.animate(action.id, scroll && details.some((line) => overflows(line, 13)));
+			this.animate(action.id, scroll && !!details && details.some((line) => overflows(line, 13)));
 			if (settings.mode === "cycle") {
 				const list = this.cycle(settings);
 				const at = list.indexOf(player.player_id);
@@ -82,11 +95,10 @@ export class SelectPlayerAction extends PlayerAction<Settings> {
 				await this.setImage(action, selectKey(player.name, state, player.available, details, { selected: session.selectedPlayerId === player.player_id, border, scroll }));
 			}
 		} else if (action.isDial()) {
-			const artist = item?.media_item?.artists?.map((artist) => artist.name).join(", ") ?? player.current_media?.artist ?? null;
 			const art = await session.artwork(item?.media_item ?? item, item ? undefined : player.current_media?.image_url);
 			await action.setFeedback({
 				title: player.name,
-				value: title ? (artist ? `${title} · ${artist}` : title) : state === "idle" ? "Idle" : "",
+				value: playing.track ? (playing.artist ? `${playing.track} · ${playing.artist}` : playing.track) : state === "idle" ? "Idle" : "",
 				icon: artworkURL(art) ?? "imgs/actions/select",
 				indicator: { value: volumeOf(player).level ?? 0, bar_fill_c: stateColor(state, player.available) },
 			});

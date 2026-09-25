@@ -1,7 +1,7 @@
 import { action, type DialDownEvent, type DialRotateEvent, type KeyDownEvent, type TouchTapEvent } from "@elgato/streamdeck";
 
 import { artworkURL, nowPlayingKey, overflows, stateColor } from "../render";
-import { canTransport, playbackState, session, volumeOf } from "../shared";
+import { canTransport, nowPlayingOf, playbackState, session, volumeOf } from "../shared";
 import { PlayerAction, type KeyContext, type PlayerSettings } from "./base";
 
 type Settings = PlayerSettings & {
@@ -21,10 +21,8 @@ export class NowPlayingAction extends PlayerAction<Settings> {
 	protected override async draw({ action, settings, player, queue, name, caption }: KeyContext<Settings>): Promise<void> {
 		const state = playbackState(player, queue);
 		const item = queue?.current_item;
-		const media = player.current_media;
-		const title = item?.media_item?.name ?? (item ? item.name : null) ?? media?.title ?? null;
-		const artist = item?.media_item?.artists?.map((artist) => artist.name).join(", ") ?? media?.artist ?? null;
-		const art = await session.artwork(item?.media_item ?? item, item ? undefined : media?.image_url);
+		const { track: title, artist } = nowPlayingOf(player, queue);
+		const art = await session.artwork(item?.media_item ?? item, item ? undefined : player.current_media?.image_url);
 		const progress = session.progress(queue);
 		if (action.isKey()) {
 			const scroll = settings.scroll !== false;
