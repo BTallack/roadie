@@ -1,8 +1,13 @@
 import { action, type DialDownEvent, type DialRotateEvent, type KeyDownEvent, type TouchTapEvent } from "@elgato/streamdeck";
 
-import { artworkURL, nowPlayingKey, stateColor } from "../render";
+import { artworkURL, nowPlayingKey, overflows, stateColor } from "../render";
 import { canTransport, playbackState, session, volumeOf } from "../shared";
 import { PlayerAction, type KeyContext, type PlayerSettings } from "./base";
+
+type Settings = PlayerSettings & {
+	/** Scroll a title or artist that doesn't fit (default on). */
+	scroll?: boolean;
+};
 
 /**
  * A player at a glance: artwork, title and artist, a state dot, and a progress bar that
@@ -10,10 +15,10 @@ import { PlayerAction, type KeyContext, type PlayerSettings } from "./base";
  * fills the strip; turning the dial changes the volume.
  */
 @action({ UUID: "media.tallack.roadie.nowplaying" })
-export class NowPlayingAction extends PlayerAction {
+export class NowPlayingAction extends PlayerAction<Settings> {
 	protected override tick = 1000;
 
-	protected override async draw({ action, player, queue, name, caption }: KeyContext<PlayerSettings>): Promise<void> {
+	protected override async draw({ action, settings, player, queue, name, caption }: KeyContext<Settings>): Promise<void> {
 		const state = playbackState(player, queue);
 		const item = queue?.current_item;
 		const media = player.current_media;
@@ -22,7 +27,9 @@ export class NowPlayingAction extends PlayerAction {
 		const art = await session.artwork(item?.media_item ?? item, item ? undefined : media?.image_url);
 		const progress = session.progress(queue);
 		if (action.isKey()) {
-			await this.setImage(action, nowPlayingKey(name, art, { title, artist, state, available: player.available, progress, caption }));
+			const scroll = settings.scroll !== false;
+			this.animate(action.id, scroll && caption && (overflows(title, 15) || overflows(artist, 13)));
+			await this.setImage(action, nowPlayingKey(name, art, { title, artist, state, available: player.available, progress, caption, scroll }));
 		} else if (action.isDial()) {
 			const { level } = volumeOf(player);
 			await action.setFeedback({
@@ -34,19 +41,19 @@ export class NowPlayingAction extends PlayerAction {
 		}
 	}
 
-	override async onKeyDown(ev: KeyDownEvent): Promise<void> {
+	override async onKeyDown(ev: KeyDownEvent<Settings>): Promise<void> {
 		await this.playPause(ev.action.id);
 	}
 
-	override async onDialDown(ev: DialDownEvent): Promise<void> {
+	override async onDialDown(ev: DialDownEvent<Settings>): Promise<void> {
 		await this.playPause(ev.action.id);
 	}
 
-	override async onTouchTap(ev: TouchTapEvent): Promise<void> {
+	override async onTouchTap(ev: TouchTapEvent<Settings>): Promise<void> {
 		await this.playPause(ev.action.id);
 	}
 
-	override async onDialRotate(ev: DialRotateEvent): Promise<void> {
+	override async onDialRotate(ev: DialRotateEvent<Settings>): Promise<void> {
 		const context = this.context(ev.action.id);
 		if (!context) return;
 		const { level, group } = volumeOf(context.player);

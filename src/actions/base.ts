@@ -39,8 +39,13 @@ export abstract class PlayerAction<T extends PlayerSettings = PlayerSettings> ex
 	/** What each key last drew, so a tick can be laid over it. */
 	private readonly lastImage = new Map<string, string>();
 	private ticker?: NodeJS.Timeout;
+	private tickerMs = 0;
+	/** Keys with scrolling text, which need frames a few times a second. */
+	private readonly animated = new Set<string>();
 	/** How often visible keys redraw on their own, in ms. */
 	protected tick = 30_000;
+	/** The frame rate while any key scrolls text. */
+	private static readonly FRAME_MS = 250;
 
 	constructor() {
 		super();
@@ -59,17 +64,30 @@ export abstract class PlayerAction<T extends PlayerSettings = PlayerSettings> ex
 			if (Object.keys(settings).length) void ev.action.setSettings(settings);
 		}
 		this.visible.set(ev.action.id, { action: ev.action, settings });
-		if (!this.ticker) this.ticker = setInterval(() => this.redrawAll(), this.tick);
+		this.retime();
 		void this.redraw(ev.action.id);
+	}
+
+	/** Marks a key as scrolling (or not); the timer speeds up while any key is. */
+	protected animate(id: string, on: boolean): void {
+		if (on) this.animated.add(id);
+		else this.animated.delete(id);
+		this.retime();
+	}
+
+	private retime(): void {
+		const ms = this.visible.size === 0 ? 0 : this.animated.size ? PlayerAction.FRAME_MS : this.tick;
+		if (ms === this.tickerMs) return;
+		clearInterval(this.ticker);
+		this.ticker = ms ? setInterval(() => this.redrawAll(), ms) : undefined;
+		this.tickerMs = ms;
 	}
 
 	override onWillDisappear(ev: WillDisappearEvent<T>): void {
 		this.visible.delete(ev.action.id);
 		this.lastImage.delete(ev.action.id);
-		if (this.visible.size === 0) {
-			clearInterval(this.ticker);
-			this.ticker = undefined;
-		}
+		this.animated.delete(ev.action.id);
+		this.retime();
 		this.didDisappear(ev.action.id);
 	}
 

@@ -9,7 +9,7 @@ through any other service. It isn't an official Music Assistant project.
 
 | Key | Shows | Press |
 |---|---|---|
-| Now playing | Artwork, title and artist, a state dot, a progress bar that keeps moving | Play / pause. On a Stream Deck+ dial: turn for volume |
+| Now playing | Artwork, title and artist (scrolling when too long to fit), a state dot, a progress bar that keeps moving | Play / pause. On a Stream Deck+ dial: turn for volume |
 | Play / Pause | Play while paused or idle, pause while playing; grey when the player can't | Toggles |
 | Next / Previous | Skip glyph, lit while something is playing or paused | Skips |
 | Stop | Stop glyph, lit while something is playing or paused | Stops |

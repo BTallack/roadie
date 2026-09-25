@@ -1,6 +1,6 @@
 import { action, type DialDownEvent, type DialRotateEvent, type DidReceiveSettingsEvent, type KeyDownEvent, type TouchTapEvent, type WillAppearEvent } from "@elgato/streamdeck";
 
-import { artworkURL, selectKey, stateColor } from "../render";
+import { artworkURL, overflows, selectKey, stateColor } from "../render";
 import { canTransport, playbackState, selectPlayer, session, volumeOf } from "../shared";
 import { PlayerAction, type KeyContext, type PlayerSettings } from "./base";
 
@@ -13,6 +13,8 @@ type Settings = PlayerSettings & {
 	hidePosition?: boolean;
 	/** Show the player's state as a border around the key instead of a dot. */
 	stateStyle?: "dot" | "border";
+	/** Scroll detail lines that don't fit (default on). */
+	scroll?: boolean;
 };
 
 /**
@@ -69,13 +71,15 @@ export class SelectPlayerAction extends PlayerAction<Settings> {
 			const source = (queue?.sources ?? queue?.radio_source ?? [])[0]?.name ?? null;
 			const details = title ? [title, artist ?? streamTitle ?? source ?? ""] : [];
 			const border = settings.stateStyle === "border";
+			const scroll = settings.scroll !== false;
+			this.animate(action.id, scroll && details.some((line) => overflows(line, 13)));
 			if (settings.mode === "cycle") {
 				const list = this.cycle(settings);
 				const at = list.indexOf(player.player_id);
 				const position = settings.hidePosition ? undefined : list.length ? `${at < 0 ? "–" : at + 1} / ${list.length}` : "No players ticked";
-				await this.setImage(action, selectKey(player.name, state, player.available, details, { selected: false, position, border }));
+				await this.setImage(action, selectKey(player.name, state, player.available, details, { selected: false, position, border, scroll }));
 			} else {
-				await this.setImage(action, selectKey(player.name, state, player.available, details, { selected: session.selectedPlayerId === player.player_id, border }));
+				await this.setImage(action, selectKey(player.name, state, player.available, details, { selected: session.selectedPlayerId === player.player_id, border, scroll }));
 			}
 		} else if (action.isDial()) {
 			const artist = item?.media_item?.artists?.map((artist) => artist.name).join(", ") ?? player.current_media?.artist ?? null;

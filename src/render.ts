@@ -56,6 +56,34 @@ function twoLines(text: string, size: number): [string] | [string, string] {
 	return [text.slice(0, cut), text.slice(cut + 1)];
 }
 
+/** Whether text at this size overflows the width a marquee would scroll it through. */
+export function overflows(text: string | null | undefined, size: number, width = SIZE - 16): boolean {
+	return !!text && text.length > Math.floor(width / (size * 0.56));
+}
+
+let clipCounter = 0;
+
+/**
+ * Text that scrolls when it doesn't fit: holds 2 s, slides left at 24 px/s, holds 1.5 s,
+ * starts over. The phase comes from the clock, so redrawing every ~250 ms animates it.
+ */
+function marquee(text: string, y: number, size: number, color: string, weight: number, width = SIZE - 16, now = Date.now()): string {
+	if (!overflows(text, size, width)) return label(text, y, size, color, weight);
+	const x0 = (SIZE - width) / 2;
+	const textWidth = text.length * size * 0.56;
+	const distance = textWidth - width + 6;
+	const hold = 2000;
+	const slide = (distance / 24) * 1000;
+	const period = hold + slide + 1500;
+	const t = now % period;
+	const offset = t < hold ? 0 : t < hold + slide ? ((t - hold) / slide) * distance : distance;
+	const id = `m${++clipCounter}`;
+	return (
+		`<clipPath id="${id}"><rect x="${x0}" y="${y - size}" width="${width}" height="${size * 1.4}"/></clipPath>` +
+		`<text clip-path="url(#${id})" x="${(x0 - offset).toFixed(1)}" y="${y}" text-anchor="start" font-family="${FONT}" font-size="${size}" font-weight="${weight}" fill="${color}">${escape(text)}</text>`
+	);
+}
+
 function label(text: string, y: number, size: number, color = COLORS.text, weight = 600, x = 72, anchor = "middle", width?: number): string {
 	return `<text x="${x}" y="${y}" text-anchor="${anchor}" font-family="${FONT}" font-size="${size}" font-weight="${weight}" fill="${color}">${escape(fit(text, size, width))}</text>`;
 }
@@ -185,7 +213,7 @@ export function volumeKey(name: string | null, level: number | null, muted: bool
 	return glyphKey(glyph, name, showCaption ? caption : null, captionColor);
 }
 
-export type NowPlaying = { title: string | null; artist: string | null; state: PlaybackState | undefined; available: boolean; progress: number | null; /** Draw the title and artist band (off: artwork alone). */ caption?: boolean };
+export type NowPlaying = { title: string | null; artist: string | null; state: PlaybackState | undefined; available: boolean; progress: number | null; /** Draw the title and artist band (off: artwork alone). */ caption?: boolean; /** Scroll a title or artist that doesn't fit. */ scroll?: boolean };
 
 /** Artwork with the title and artist over a dark band; a state dot and a thin progress bar. */
 export function nowPlayingKey(name: string | null, art: Artwork | undefined, now: NowPlaying): string {
@@ -198,8 +226,9 @@ export function nowPlayingKey(name: string | null, art: Artwork | undefined, now
 		const title = now.available ? now.title! : "Unavailable";
 		const twoLines = now.available && !!now.artist;
 		body += `<rect y="${twoLines ? 92 : 108}" width="144" height="${twoLines ? 52 : 36}" fill="#000000" opacity="0.6"/>`;
-		body += label(title, twoLines ? 113 : 131, 15, COLORS.text, 700);
-		if (twoLines) body += label(now.artist!, 133, 13, COLORS.secondary, 500);
+		const text = now.scroll === false ? (t: string, y: number, size: number, c: string, w: number) => label(t, y, size, c, w) : marquee;
+		body += text(title, twoLines ? 113 : 131, 15, COLORS.text, 700);
+		if (twoLines) body += text(now.artist!, 133, 13, COLORS.secondary, 500);
 	} else if (!art) {
 		body += label(stateLabel(now.state), 131, 15, color, 700);
 	}
@@ -303,6 +332,8 @@ export type SelectLook = {
 	position?: string;
 	/** State as a coloured border around the key instead of a dot above the name. */
 	border?: boolean;
+	/** Scroll detail lines that don't fit. */
+	scroll?: boolean;
 };
 
 /**
@@ -329,7 +360,7 @@ export function selectKey(playerName: string, state: PlaybackState | undefined, 
 	const room = look.border || lines.length === 1 ? 2 : 1;
 	y += 8;
 	for (const line of shown.slice(0, room)) {
-		body += label(line, y + 4, 13, COLORS.secondary, 500);
+		body += look.scroll === false ? label(line, y + 4, 13, COLORS.secondary, 500) : marquee(line, y + 4, 13, COLORS.secondary, 500);
 		y += 17;
 	}
 	if (look.border) {
