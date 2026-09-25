@@ -13,7 +13,7 @@ through any other service. It isn't an official Music Assistant project.
 | Play / Pause | Play while paused or idle, pause while playing; grey when the player can't | Toggles |
 | Next / Previous | Skip glyph, lit while something is playing or paused | Skips |
 | Stop | Stop glyph, lit while something is playing or paused | Stops |
-| Volume | One of five, chosen in settings: volume up, volume down, mute (yellow while muted), the current level on an arc, or the level with press-to-mute | Steps, mutes, or nothing for the display-only level. On a dial: turn for volume, press to mute |
+| Volume | One of five, chosen in settings: volume up, volume down, mute (yellow while muted), the current level on an arc, or the level with press-to-mute. Two icon styles: sound waves (one for down, three for up, none for mute, as on Apple keyboards) or plus and minus signs | Steps, mutes, or nothing for the display-only level. On a dial: turn for volume, press to mute |
 | Playlist | The playlist's artwork and name; framed green while the player plays from it, yellow while paused on it | Loads it on the player: replace the queue, play now, play next, or add to the end; shuffle on, off or as the server is set |
 | Radio station | The station's artwork and name, framed the same way. The picker groups stations by network (DI.FM, JazzRadio, RadioTunes…) or provider, favourites first | Loads it on the player, with the same enqueue choices |
 

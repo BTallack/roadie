@@ -1,12 +1,14 @@
 import { action, type DialDownEvent, type DialRotateEvent, type KeyDownEvent, type TouchTapEvent } from "@elgato/streamdeck";
 
-import { speakerIcon, volumeKey, type VolumeMode } from "../render";
+import { speakerIcon, volumeKey, type VolumeMode, type VolumeStyle } from "../render";
 import { session, volumeOf } from "../shared";
 import { PlayerAction, type KeyContext, type PlayerSettings } from "./base";
 
 type Settings = PlayerSettings & {
 	/** What a key press does; a dial always turns for volume and presses to mute. */
 	mode?: VolumeMode;
+	/** Sound waves (one for down, three for up, none for mute) or plus and minus signs. */
+	style?: VolumeStyle;
 };
 
 /** Louder, quieter, mute, or the level on an arc; dials turn. Groups use the group volume. */
@@ -15,7 +17,7 @@ export class VolumeAction extends PlayerAction<Settings> {
 	protected override async draw({ action, settings, player, name, caption }: KeyContext<Settings>): Promise<void> {
 		const { level, muted } = volumeOf(player);
 		if (action.isKey()) {
-			await this.setImage(action, volumeKey(name, level, muted, settings.mode ?? "up", caption));
+			await this.setImage(action, volumeKey(name, level, muted, settings.mode ?? "up", caption, settings.style ?? "waves"));
 		} else if (action.isDial()) {
 			await action.setFeedback({
 				title: player.name,

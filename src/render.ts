@@ -115,19 +115,24 @@ export function playPauseKey(name: string | null, state: PlaybackState | undefin
 
 export type VolumeMode = "up" | "down" | "mute" | "level" | "level_mute";
 
-/** A speaker glyph centred on (72, 66): waves, or a cross when muted. */
-function speakerGlyph(color: string, muted: boolean): string {
+export type VolumeStyle = "waves" | "signs";
+
+/** A speaker glyph centred on (72, 66) with 0 to 3 sound waves, or a cross when muted. */
+function speakerGlyph(color: string, waves: 0 | 1 | 2 | 3 | "muted"): string {
 	const body = `<path d="M34 52 h16 l20 -18 v64 l-20 -18 h-16 z" fill="${color}"/>`;
-	if (muted) return body + `<path d="M84 54 l22 24 M106 54 l-22 24" stroke="${color}" stroke-width="7" stroke-linecap="round"/>`;
-	return body + `<path d="M82 54 q12 12 0 24 M94 44 q22 22 0 44" fill="none" stroke="${color}" stroke-width="7" stroke-linecap="round"/>`;
+	if (waves === "muted") return body + `<path d="M84 54 l22 24 M106 54 l-22 24" stroke="${color}" stroke-width="7" stroke-linecap="round"/>`;
+	const arcs = [`M82 56 q10 10 0 20`, `M92 46 q20 20 0 40`, `M102 36 q30 30 0 60`].slice(0, waves);
+	return body + (arcs.length ? `<path d="${arcs.join(" ")}" fill="none" stroke="${color}" stroke-width="7" stroke-linecap="round"/>` : "");
 }
 
 /**
- * Volume keys. `up` and `down` show a speaker with a plus or minus; `mute` a speaker,
- * crossed and yellow while muted; `level` and `level_mute` the number on an arc (the
- * latter's caption says a press mutes). All grey out when the player has no volume.
+ * Volume keys. `up` and `down` show a speaker: with three waves and one wave in the
+ * `waves` style (as on Apple's keyboards), or with two waves and a plus or minus in the
+ * `signs` style. `mute` shows a speaker with no waves (`waves`) or crossed (`signs`),
+ * yellow while muted. `level` and `level_mute` show the number on an arc (the latter's
+ * caption says a press mutes). All grey out when the player has no volume.
  */
-export function volumeKey(name: string | null, level: number | null, muted: boolean, mode: VolumeMode, showCaption = true): string {
+export function volumeKey(name: string | null, level: number | null, muted: boolean, mode: VolumeMode, showCaption = true, style: VolumeStyle = "waves"): string {
 	const color = level === null ? COLORS.disabled : muted ? COLORS.paused : COLORS.accent;
 	const captionColor = level === null ? COLORS.secondary : COLORS.text;
 	if (mode === "level" || mode === "level_mute") {
@@ -138,19 +143,24 @@ export function volumeKey(name: string | null, level: number | null, muted: bool
 			`<circle cx="72" cy="${cy}" r="38" fill="none" stroke="${COLORS.track}" stroke-width="9" stroke-dasharray="${arc} 999" transform="rotate(135 72 ${cy})" stroke-linecap="round"/>` +
 			`<circle cx="72" cy="${cy}" r="38" fill="none" stroke="${color}" stroke-width="9" stroke-dasharray="${arc * fraction} 999" transform="rotate(135 72 ${cy})" stroke-linecap="round"/>`;
 		const centre = muted
-			? `<g transform="translate(72 ${cy}) scale(0.55) translate(-72 -66)">${speakerGlyph(COLORS.paused, true)}</g>`
+			? `<g transform="translate(72 ${cy}) scale(0.55) translate(-72 -66)">${speakerGlyph(COLORS.paused, style === "waves" ? 0 : "muted")}</g>`
 			: label(level === null ? "–" : String(Math.round(level)), cy + 9, 26, level === null ? COLORS.secondary : COLORS.text, 700);
 		const top = name !== null ? label(name, 22, 14, COLORS.secondary, 600) : "";
 		const bottom = showCaption ? label(mode === "level_mute" ? (muted ? "Unmute" : "Mute") : muted ? "Muted" : "Volume", 132, 17, captionColor) : "";
 		return svg(top + gauge + centre + bottom);
 	}
-	const badge =
-		mode === "up"
-			? `<path d="M108 100 h20 M118 90 v20" stroke="${color}" stroke-width="7" stroke-linecap="round"/>`
-			: mode === "down"
-				? `<path d="M108 100 h20" stroke="${color}" stroke-width="7" stroke-linecap="round"/>`
-				: "";
-	const glyph = speakerGlyph(color, mode === "mute" ? muted : false) + badge;
+	let glyph: string;
+	if (style === "waves") {
+		glyph = speakerGlyph(color, mode === "up" ? 3 : mode === "down" ? 1 : 0);
+	} else {
+		const badge =
+			mode === "up"
+				? `<path d="M108 100 h20 M118 90 v20" stroke="${color}" stroke-width="7" stroke-linecap="round"/>`
+				: mode === "down"
+					? `<path d="M108 100 h20" stroke="${color}" stroke-width="7" stroke-linecap="round"/>`
+					: "";
+		glyph = speakerGlyph(color, mode === "mute" ? (muted ? "muted" : 2) : 2) + badge;
+	}
 	const caption = mode === "mute" ? (muted ? "Unmute" : "Mute") : mode === "up" ? "Louder" : "Quieter";
 	return glyphKey(glyph, name, showCaption ? caption : null, captionColor);
 }
