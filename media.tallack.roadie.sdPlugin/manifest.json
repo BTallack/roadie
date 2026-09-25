@@ -92,6 +92,15 @@
 			"PropertyInspectorPath": "ui/playlist.html",
 			"Controllers": ["Keypad"],
 			"States": [{ "Image": "imgs/actions/playlist-key", "ShowTitle": false }]
+		},
+		{
+			"Name": "Radio station",
+			"UUID": "media.tallack.roadie.radio",
+			"Icon": "imgs/actions/radio",
+			"Tooltip": "Loads a radio station on a player. Shows the station's artwork, lit while it's playing.",
+			"PropertyInspectorPath": "ui/radio.html",
+			"Controllers": ["Keypad"],
+			"States": [{ "Image": "imgs/actions/radio-key", "ShowTitle": false }]
 		}
 	]
 }

@@ -15,6 +15,7 @@ through any other service. It isn't an official Music Assistant project.
 | Stop | Stop glyph, lit while something is playing or paused | Stops |
 | Volume | One of five, chosen in settings: volume up, volume down, mute (yellow while muted), the current level on an arc, or the level with press-to-mute | Steps, mutes, or nothing for the display-only level. On a dial: turn for volume, press to mute |
 | Playlist | The playlist's artwork and name; framed green while the player plays from it, yellow while paused on it | Loads it on the player: replace the queue, play now, play next, or add to the end; shuffle on, off or as the server is set |
+| Radio station | The station's artwork and name, framed the same way. The picker groups stations by network (DI.FM, JazzRadio, RadioTunes…) or provider, favourites first | Loads it on the player, with the same enqueue choices |
 
 Every key names its player, shown as a small line at the top unless "Hide player name" is
 ticked; glyph keys can also drop their caption word, and the now-playing key its title and

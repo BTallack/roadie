@@ -13,7 +13,7 @@ export type GlobalSettings = {
 };
 
 /** Settings that are about one key alone, never carried to a new one. */
-const NOT_REMEMBERED = new Set(["playlistUri"]);
+const NOT_REMEMBERED = new Set(["playlistUri", "radioUri"]);
 
 let defaults: Record<string, JsonValue | undefined> = {};
 

@@ -39,7 +39,13 @@ before(async () => {
 				case "player_queues/all":
 					return send([queue("Office", { state: "playing", sources: [{ uri: "library://playlist/17", name: "Mix" }], current_item: { queue_id: "Office", queue_item_id: "x", name: "Song", duration: 200 }, elapsed_time: 50, elapsed_time_last_updated: Date.now() / 1000 + 100 }), queue("Kitchen"), queue("Everywhere")]);
 				case "providers":
-					return send([{ instance_id: "spotify--1", name: "Spotify", type: "music" }, { instance_id: "apple--1", name: "Apple Music", type: "music" }]);
+					return send([{ instance_id: "spotify--1", name: "Spotify", type: "music" }, { instance_id: "apple--1", name: "Apple Music", type: "music" }, { instance_id: "tunein--1", name: "Tune-In Radio", type: "music" }]);
+				case "music/radios/library_items":
+					return send([
+						{ name: "Bass Jazz", uri: "library://radio/241", provider: "library", favorite: true, provider_mappings: [{ item_id: "jazzradio:bassjazz", provider_domain: "digitally_incorporated", provider_instance: "digitally_incorporated" }] },
+						{ name: "Ambient", uri: "library://radio/12", provider: "library", provider_mappings: [{ item_id: "zenradio:ambient", provider_domain: "digitally_incorporated", provider_instance: "digitally_incorporated" }, { item_id: "di:ambient", provider_domain: "digitally_incorporated", provider_instance: "digitally_incorporated" }] },
+						{ name: "CBC Radio One", uri: "library://radio/5", provider: "library", provider_mappings: [{ item_id: "s1234", provider_domain: "tunein", provider_instance: "tunein--1" }] },
+					]);
 				case "music/playlists/library_items":
 					socket.send(JSON.stringify({ message_id, result: [{ name: "Hamilton", uri: "library://playlist/24", provider: "library", favorite: true, provider_mappings: [{ item_id: "a", provider_domain: "spotify", provider_instance: "spotify--1" }] }], partial: true }));
 					return send([{ name: "Hamilton", uri: "library://playlist/79", provider: "library", provider_mappings: [{ item_id: "b", provider_domain: "apple_music", provider_instance: "apple--1" }] }]);
@@ -106,7 +112,16 @@ test("names the provider on playlists and sorts by name then provider", async ()
 	session.configure(base, "good");
 	await until(() => session.state === "live");
 	const playlists = await session.playlists();
-	assert.deepEqual(playlists.map((p) => `${p.name} (${p.provider})${p.favorite ? "*" : ""}`), ["Hamilton (Apple Music)", "Hamilton (Spotify)*"]);
+	assert.deepEqual(playlists.map((p) => `${p.name} (${p.group})${p.favorite ? "*" : ""}`), ["Hamilton (Apple Music)", "Hamilton (Spotify)*"]);
+	session.configure(undefined, undefined);
+});
+
+test("groups radio stations by network, listing multi-network stations under each", async () => {
+	const session = new Session(quiet);
+	session.configure(base, "good");
+	await until(() => session.state === "live");
+	const radios = await session.radios();
+	assert.deepEqual(radios.map((r) => `${r.name} (${r.group})${r.favorite ? "*" : ""}`), ["Ambient (DI.FM)", "Ambient (ZenRadio)", "Bass Jazz (JazzRadio)*", "CBC Radio One (Tune-In Radio)"]);
 	session.configure(undefined, undefined);
 });
 

@@ -4,7 +4,7 @@
 import { writeFileSync } from "node:fs";
 
 import { Session } from "../src/ma/session";
-import { nowPlayingKey, playPauseKey, playlistKey, transportKey, volumeKey, messageKey } from "../src/render";
+import { nowPlayingKey, playPauseKey, mediaKey, transportKey, volumeKey, messageKey } from "../src/render";
 import { canTransport, playbackState, volumeOf } from "../src/shared";
 
 const session = new Session({ info: console.log, warn: console.warn });
@@ -30,8 +30,11 @@ for (const player of players) {
 	const art = await session.artwork(item?.media_item ?? item, item ? undefined : player.current_media?.image_url);
 	const { level, muted } = volumeOf(player);
 	const source = (queue?.sources ?? queue?.radio_source ?? [])[0];
-	const playlist = source?.uri ? await session.playlist(source.uri) : undefined;
+	const playlist = source?.uri ? await session.item(source.uri) : undefined;
 	const playlistArt = playlist ? await session.artwork(playlist) : undefined;
+	const radio = (await session.radios()).find((r) => r.favorite);
+	const radioItem = radio ? await session.item(radio.uri) : undefined;
+	const radioArt = radioItem ? await session.artwork(radioItem) : undefined;
 	const keys: Record<string, string> = {
 		nowplaying: nowPlayingKey(player.name, art, { title, artist, state, available: player.available, progress: session.progress(queue) }),
 		"nowplaying-noname": nowPlayingKey(null, art, { title, artist, state, available: player.available, progress: session.progress(queue) }),
@@ -54,9 +57,11 @@ for (const player of players) {
 		"nowplaying-art": nowPlayingKey(null, art, { title, artist, state, available: player.available, progress: session.progress(queue), caption: false }),
 		"playpause-noname": playPauseKey(null, state, canTransport(player, queue, "pause")),
 		"stop-icon": transportKey("stop", null, state !== "idle", false),
-		playlist: playlistKey(player.name, playlistArt, playlist?.name ?? "Choose a playlist", playlist ? (state === "playing" ? "playing" : "loaded") : false, !!playlist),
-		"playlist-noname": playlistKey(null, playlistArt, playlist?.name ?? "Choose a playlist", false, !!playlist),
-		"playlist-art": playlistKey(null, playlistArt, null, false, !!playlist),
+		playlist: mediaKey("playlist", player.name, playlistArt, playlist?.name ?? "Choose a playlist", playlist ? (state === "playing" ? "playing" : "loaded") : false, !!playlist),
+		"playlist-noname": mediaKey("playlist", null, playlistArt, playlist?.name ?? "Choose a playlist", false, !!playlist),
+		"playlist-art": mediaKey("playlist", null, playlistArt, null, false, !!playlist),
+		"radio-empty": mediaKey("radio", player.name, undefined, "Choose a station", false, false),
+		radio: mediaKey("radio", player.name, radioArt, radio?.name ?? "Choose a station", radio ? "playing" : false, !!radio),
 	};
 	for (const [name, url] of Object.entries(keys)) write(`${slug}-${name}`, url);
 	console.log(`${player.name}: ${state} vol=${level} title=${title} playlist=${playlist?.name}`);

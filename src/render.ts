@@ -177,11 +177,18 @@ export function nowPlayingKey(name: string | null, art: Artwork | undefined, now
 	return svg(body);
 }
 
-/** The playlist's artwork and name; a coloured frame while the player is playing from it. */
-export function playlistKey(name: string | null, art: Artwork | undefined, playlistName: string | null, playing: "playing" | "loaded" | false, enabled: boolean, showCaption = true): string {
+export type MediaKind = "playlist" | "radio";
+
+const MEDIA_GLYPHS: Record<MediaKind, (color: string) => string> = {
+	playlist: (c) => `<g stroke="${c}" stroke-width="6" stroke-linecap="round"><path d="M34 46 h56 M34 66 h56 M34 86 h34"/></g><path d="M98 82 v-24 l16 8" fill="none" stroke="${c}" stroke-width="6" stroke-linejoin="round" stroke-linecap="round"/>`,
+	radio: (c) => `<circle cx="72" cy="66" r="9" fill="${c}"/><path d="M72 75 v30 M52 46 q-14 20 0 40 M92 46 q14 20 0 40 M40 34 q-22 32 0 64 M104 34 q22 32 0 64" fill="none" stroke="${c}" stroke-width="6" stroke-linecap="round"/>`,
+};
+
+/** A playlist's or station's artwork and name; a coloured frame while the player is on it. */
+export function mediaKey(kind: MediaKind, name: string | null, art: Artwork | undefined, itemName: string | null, playing: "playing" | "loaded" | false, enabled: boolean, showCaption = true): string {
 	let body = picture(art);
-	if (!art) body += `<g stroke="${enabled ? COLORS.idle : COLORS.disabled}" stroke-width="6" stroke-linecap="round"><path d="M34 46 h56 M34 66 h56 M34 86 h34"/></g><path d="M98 82 v-24 l16 8" fill="none" stroke="${enabled ? COLORS.idle : COLORS.disabled}" stroke-width="6" stroke-linejoin="round" stroke-linecap="round"/>`;
-	if (showCaption && playlistName) body += `<rect y="108" width="144" height="36" fill="#000000" opacity="0.6"/>` + label(playlistName, 131, 15, enabled ? COLORS.text : COLORS.secondary, 700);
+	if (!art) body += MEDIA_GLYPHS[kind](enabled ? COLORS.idle : COLORS.disabled);
+	if (showCaption && itemName) body += `<rect y="108" width="144" height="36" fill="#000000" opacity="0.6"/>` + label(itemName, 131, 15, enabled ? COLORS.text : COLORS.secondary, 700);
 	if (name !== null) body += `<rect width="144" height="26" fill="#000000" opacity="0.5"/>` + label(name, 19, 13, COLORS.secondary, 600);
 	if (playing) body += `<rect x="3" y="3" width="138" height="138" rx="14" fill="none" stroke="${playing === "playing" ? COLORS.playing : COLORS.paused}" stroke-width="6"/>`;
 	if (!enabled) body += `<rect width="144" height="144" fill="#000000" opacity="0.45"/>`;

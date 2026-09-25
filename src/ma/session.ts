@@ -1,14 +1,17 @@
 import { EventEmitter } from "node:events";
 
 import { Connection, fetchServerInfo, imageURL, isAuthError, normaliseURL, MusicAssistantError } from "./connection";
-import { itemImage, type MassEvent, type Player, type PlayerQueue, type Playlist, type ServerInfo } from "./types";
+import { itemImage, type MassEvent, type MediaItem, type Player, type PlayerQueue, type ServerInfo } from "./types";
 
 export type ConnectionState = "unconfigured" | "connecting" | "live" | "offline" | "unauthorized";
 
 type Logger = { info(message: string): void; warn(message: string): void };
 
-/** A playlist as the picker shows it: the provider tells same-named lists apart. */
-export type PlaylistChoice = { uri: string; name: string; provider: string; favorite: boolean };
+/** A playlist or station as a picker shows it: `group` tells same-named items apart. */
+export type MediaChoice = { uri: string; name: string; group: string; favorite: boolean };
+
+/** Networks behind the Digitally Imported provider, by the prefix on their station ids. */
+const RADIO_NETWORKS: Record<string, string> = { di: "DI.FM", radiotunes: "RadioTunes", rockradio: "RockRadio", jazzradio: "JazzRadio", classicalradio: "ClassicalRadio", zenradio: "ZenRadio" };
 
 /**
  * Everything the keys know about one Music Assistant server, kept current.
@@ -277,23 +280,40 @@ export class Session extends EventEmitter {
 		return connection.command<T>(command, args);
 	}
 
-	/** Every library playlist, with its provider's name, sorted for a picker. */
-	async playlists(): Promise<PlaylistChoice[]> {
-		const playlists = await this.command<Playlist[]>("music/playlists/library_items", { limit: 2000, order_by: "sort_name" });
-		return playlists
-			.filter((playlist) => playlist.uri)
-			.map((playlist) => {
-				const mapping = playlist.provider_mappings?.find((m) => m.available !== false) ?? playlist.provider_mappings?.[0];
-				const provider = mapping ? (this.providers.get(mapping.provider_instance) ?? mapping.provider_domain) : playlist.provider;
-				return { uri: playlist.uri!, name: playlist.name, provider, favorite: playlist.favorite === true };
-			})
-			.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }) || a.provider.localeCompare(b.provider));
+	/** Every library playlist, with its provider's name as the group, sorted for a picker. */
+	playlists(): Promise<MediaChoice[]> {
+		return this.library("playlist", (item, mapping) => (mapping ? (this.providers.get(mapping.provider_instance) ?? mapping.provider_domain) : item.provider));
 	}
 
-	/** One playlist by URI, for the key's artwork and name; undefined when it's gone. */
-	async playlist(uri: string): Promise<Playlist | undefined> {
+	/**
+	 * Every library radio station, grouped by network where the provider bundles several
+	 * (Digitally Imported's DI.FM, JazzRadio…), otherwise by provider. A station on several
+	 * networks is listed under each.
+	 */
+	radios(): Promise<MediaChoice[]> {
+		return this.library("radio", (item, mapping) => {
+			const network = mapping?.item_id.includes(":") ? RADIO_NETWORKS[mapping.item_id.split(":")[0]] : undefined;
+			return network ?? (mapping ? (this.providers.get(mapping.provider_instance) ?? mapping.provider_domain) : item.provider);
+		}, true);
+	}
+
+	private async library(kind: "playlist" | "radio", groupOf: (item: MediaItem, mapping: MediaItem["provider_mappings"] extends (infer M)[] | undefined ? M | undefined : never) => string, everyMapping = false): Promise<MediaChoice[]> {
+		const items = await this.command<MediaItem[]>(`music/${kind}s/library_items`, { limit: 5000, order_by: "sort_name" });
+		const choices: MediaChoice[] = [];
+		for (const item of items) {
+			if (!item.uri) continue;
+			const mappings = (item.provider_mappings ?? []).filter((mapping) => mapping.available !== false);
+			const considered = everyMapping ? (mappings.length ? mappings : [undefined]) : [mappings[0] ?? item.provider_mappings?.[0]];
+			const groups = new Set(considered.map((mapping) => groupOf(item, mapping)));
+			for (const group of groups) choices.push({ uri: item.uri, name: item.name, group, favorite: item.favorite === true });
+		}
+		return choices.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }) || a.group.localeCompare(b.group));
+	}
+
+	/** One library item by URI, for a key's artwork and name; undefined when it's gone. */
+	async item(uri: string): Promise<MediaItem | undefined> {
 		try {
-			return await this.command<Playlist>("music/item_by_uri", { uri });
+			return await this.command<MediaItem>("music/item_by_uri", { uri });
 		} catch (error) {
 			if (error instanceof MusicAssistantError && error.code === 2) return undefined;
 			throw error;
