@@ -1,0 +1,97 @@
+{
+	"Name": "Music Assistant Controls",
+	"Version": "0.1.0.0",
+	"Author": "Tallack Media",
+	"Description": "Your Music Assistant players on Stream Deck: now playing, play/pause, skip, volume, and keys that load your playlists. Talks straight to your own Music Assistant server.",
+	"URL": "https://github.com/tallackmedia/egs-music-assistant",
+	"Category": "Music Assistant",
+	"CategoryIcon": "imgs/plugin/category-icon",
+	"Icon": "imgs/plugin/marketplace",
+	"CodePath": "bin/plugin.js",
+	"SDKVersion": 3,
+	"Software": {
+		"MinimumVersion": "7.1"
+	},
+	"OS": [
+		{ "Platform": "mac", "MinimumVersion": "12" },
+		{ "Platform": "windows", "MinimumVersion": "10" }
+	],
+	"Nodejs": {
+		"Version": "24",
+		"Debug": "enabled"
+	},
+	"UUID": "media.tallack.musicassistant",
+	"Actions": [
+		{
+			"Name": "Now playing",
+			"UUID": "media.tallack.musicassistant.nowplaying",
+			"Icon": "imgs/actions/nowplaying",
+			"Tooltip": "Artwork, title and artist for one player. Press to play or pause. On a dial: turn for volume.",
+			"PropertyInspectorPath": "ui/player.html",
+			"Controllers": ["Keypad", "Encoder"],
+			"States": [{ "Image": "imgs/actions/nowplaying-key", "ShowTitle": false }],
+			"Encoder": {
+				"layout": "$B1",
+				"TriggerDescription": { "Rotate": "Volume", "Push": "Play / pause", "Touch": "Play / pause" }
+			}
+		},
+		{
+			"Name": "Play / Pause",
+			"UUID": "media.tallack.musicassistant.playpause",
+			"Icon": "imgs/actions/playpause",
+			"Tooltip": "Plays or pauses the player.",
+			"PropertyInspectorPath": "ui/player.html",
+			"Controllers": ["Keypad"],
+			"States": [{ "Image": "imgs/actions/playpause-key", "ShowTitle": false }]
+		},
+		{
+			"Name": "Next track",
+			"UUID": "media.tallack.musicassistant.next",
+			"Icon": "imgs/actions/next",
+			"Tooltip": "Skips to the next track.",
+			"PropertyInspectorPath": "ui/player.html",
+			"Controllers": ["Keypad"],
+			"States": [{ "Image": "imgs/actions/next-key", "ShowTitle": false }]
+		},
+		{
+			"Name": "Previous track",
+			"UUID": "media.tallack.musicassistant.previous",
+			"Icon": "imgs/actions/previous",
+			"Tooltip": "Goes back to the previous track.",
+			"PropertyInspectorPath": "ui/player.html",
+			"Controllers": ["Keypad"],
+			"States": [{ "Image": "imgs/actions/previous-key", "ShowTitle": false }]
+		},
+		{
+			"Name": "Stop",
+			"UUID": "media.tallack.musicassistant.stop",
+			"Icon": "imgs/actions/stop",
+			"Tooltip": "Stops playback on the player.",
+			"PropertyInspectorPath": "ui/player.html",
+			"Controllers": ["Keypad"],
+			"States": [{ "Image": "imgs/actions/stop-key", "ShowTitle": false }]
+		},
+		{
+			"Name": "Volume",
+			"UUID": "media.tallack.musicassistant.volume",
+			"Icon": "imgs/actions/volume",
+			"Tooltip": "Volume up, down or mute as a key; on a dial, turn for volume and press to mute.",
+			"PropertyInspectorPath": "ui/volume.html",
+			"Controllers": ["Keypad", "Encoder"],
+			"States": [{ "Image": "imgs/actions/volume-key", "ShowTitle": false }],
+			"Encoder": {
+				"layout": "$B1",
+				"TriggerDescription": { "Rotate": "Volume", "Push": "Mute / unmute", "Touch": "Mute / unmute" }
+			}
+		},
+		{
+			"Name": "Playlist",
+			"UUID": "media.tallack.musicassistant.playlist",
+			"Icon": "imgs/actions/playlist",
+			"Tooltip": "Loads a playlist on a player. Shows the playlist's artwork, lit while it's playing.",
+			"PropertyInspectorPath": "ui/playlist.html",
+			"Controllers": ["Keypad"],
+			"States": [{ "Image": "imgs/actions/playlist-key", "ShowTitle": false }]
+		}
+	]
+}

@@ -1,0 +1,11 @@
+# Node.js
+node_modules/
+
+# Stream Deck build output and logs
+*.sdPlugin/bin
+*.sdPlugin/logs
+*.streamDeckPlugin
+
+# Local previews and probe output
+.preview/
+.env
