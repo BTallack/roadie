@@ -2,7 +2,7 @@ import streamDeck, { SingletonAction, type Action, type DidReceiveSettingsEvent,
 import type { JsonValue } from "@elgato/utils";
 
 import type { Player, PlayerQueue } from "../ma/types";
-import { messageKey } from "../render";
+import { messageKey, withTick } from "../render";
 import { connectionSummary, rememberDefaults, seedSettings, session } from "../shared";
 
 /** Every key names the player it's about. */
@@ -35,6 +35,8 @@ export type KeyContext<T extends PlayerSettings> = {
  */
 export abstract class PlayerAction<T extends PlayerSettings = PlayerSettings> extends SingletonAction<T> {
 	protected readonly visible = new Map<string, { action: Action<T>; settings: T }>();
+	/** What each key last drew, so a tick can be laid over it. */
+	private readonly lastImage = new Map<string, string>();
 	private ticker?: NodeJS.Timeout;
 	/** How often visible keys redraw on their own, in ms. */
 	protected tick = 30_000;
@@ -62,6 +64,7 @@ export abstract class PlayerAction<T extends PlayerSettings = PlayerSettings> ex
 
 	override onWillDisappear(ev: WillDisappearEvent<T>): void {
 		this.visible.delete(ev.action.id);
+		this.lastImage.delete(ev.action.id);
 		if (this.visible.size === 0) {
 			clearInterval(this.ticker);
 			this.ticker = undefined;
@@ -105,7 +108,7 @@ export abstract class PlayerAction<T extends PlayerSettings = PlayerSettings> ex
 		if (!action.isKey() && !action.isDial()) return;
 		const context = this.context(id);
 		if (!context) {
-			if (action.isKey()) await action.setImage(this.placeholder(settings));
+			if (action.isKey()) await this.setImage(action, this.placeholder(settings));
 			else await action.setFeedback({ title: "Roadie", value: session.state === "unconfigured" ? "Set up" : session.state === "live" ? "Choose player" : connectionSummary() });
 			return;
 		}
@@ -114,6 +117,13 @@ export abstract class PlayerAction<T extends PlayerSettings = PlayerSettings> ex
 		} catch (error) {
 			streamDeck.logger.warn(`draw failed: ${error instanceof Error ? error.message : String(error)}`);
 		}
+	}
+
+	/** Draws a key and remembers the image, so `run()` can lay a tick over it. */
+	protected async setImage(action: Action<T>, image: string): Promise<void> {
+		if (!action.isKey()) return;
+		this.lastImage.set(action.id, image);
+		await action.setImage(image);
 	}
 
 	/** The key's player and queue, or nothing when it can't be drawn yet. */
@@ -140,11 +150,18 @@ export abstract class PlayerAction<T extends PlayerSettings = PlayerSettings> ex
 		return messageKey("Not found", "Pick again");
 	}
 
-	/** Runs a command, flashing the key's tick or alert, and logging when it fails. */
+	/**
+	 * Runs a command. Success shows a small tick in the key's corner for a moment (not
+	 * Stream Deck's full-key overlay); failure shows the alert and logs.
+	 */
 	protected async run(action: Action<T>, work: () => Promise<unknown>): Promise<boolean> {
 		try {
 			await work();
-			if (action.isKey()) await action.showOk();
+			const image = action.isKey() ? this.lastImage.get(action.id) : undefined;
+			if (image && action.isKey()) {
+				await action.setImage(withTick(image));
+				setTimeout(() => void this.redraw(action.id), 800);
+			}
 			return true;
 		} catch (error) {
 			streamDeck.logger.warn(`command failed: ${error instanceof Error ? error.message : String(error)}`);

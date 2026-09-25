@@ -22,7 +22,7 @@ export class NowPlayingAction extends PlayerAction {
 		const art = await session.artwork(item?.media_item ?? item, item ? undefined : media?.image_url);
 		const progress = session.progress(queue);
 		if (action.isKey()) {
-			await action.setImage(nowPlayingKey(name, art, { title, artist, state, available: player.available, progress, caption }));
+			await this.setImage(action, nowPlayingKey(name, art, { title, artist, state, available: player.available, progress, caption }));
 		} else if (action.isDial()) {
 			const { level } = volumeOf(player);
 			await action.setFeedback({

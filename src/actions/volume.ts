@@ -15,7 +15,7 @@ export class VolumeAction extends PlayerAction<Settings> {
 	protected override async draw({ action, settings, player, name, caption }: KeyContext<Settings>): Promise<void> {
 		const { level, muted } = volumeOf(player);
 		if (action.isKey()) {
-			await action.setImage(volumeKey(name, level, muted, settings.mode ?? "up", caption));
+			await this.setImage(action, volumeKey(name, level, muted, settings.mode ?? "up", caption));
 		} else if (action.isDial()) {
 			await action.setFeedback({
 				title: player.name,

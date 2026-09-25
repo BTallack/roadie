@@ -43,7 +43,7 @@ export class PlaylistAction extends PlayerAction<Settings> {
 		const playing = loaded ? (queue!.state === "playing" ? "playing" : queue!.state === "paused" ? "loaded" : false) : false;
 		const enabled = player.available && !!uri && playlist !== null;
 		const caption_ = !uri ? "Choose a playlist" : playlist === null ? "Playlist gone" : (playlist?.name ?? "…");
-		await action.setImage(playlistKey(name, art, caption ? caption_ : null, playing, enabled, true));
+		await this.setImage(action, playlistKey(name, art, caption ? caption_ : null, playing, enabled, true));
 	}
 
 	private lookup(uri: string): Promise<Playlist | null> {

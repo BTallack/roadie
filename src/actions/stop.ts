@@ -9,7 +9,7 @@ export class StopAction extends PlayerAction {
 	protected override async draw({ action, player, queue, name, caption }: KeyContext<never>): Promise<void> {
 		const state = playbackState(player, queue);
 		const enabled = canTransport(player, queue, "pause") && (state === "playing" || state === "paused");
-		if (action.isKey()) await action.setImage(transportKey("stop", name, enabled, caption));
+		if (action.isKey()) await this.setImage(action, transportKey("stop", name, enabled, caption));
 	}
 
 	override async onKeyDown(ev: KeyDownEvent): Promise<void> {

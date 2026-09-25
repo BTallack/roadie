@@ -200,3 +200,12 @@ export function speakerIcon(muted: boolean): string {
 	const markup = `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64"><path d="M10 24 h10 l12 -10 v36 l-12 -10 h-10 z" fill="${color}"/>${waves}</svg>`;
 	return `data:image/svg+xml;charset=utf8,${encodeURIComponent(markup)}`;
 }
+
+/** A small green tick in the top-right corner of a key image, as a quiet "done". */
+export function withTick(image: string): string {
+	const prefix = "data:image/svg+xml;charset=utf8,";
+	if (!image.startsWith(prefix)) return image;
+	const markup = decodeURIComponent(image.slice(prefix.length));
+	const badge = `<circle cx="126" cy="18" r="13" fill="${COLORS.playing}" stroke="#000000" stroke-opacity="0.35" stroke-width="2"/><path d="M119 18.5 l5 5 l9 -11" fill="none" stroke="#FFFFFF" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>`;
+	return prefix + encodeURIComponent(markup.replace(/<\/svg>\s*$/, `${badge}</svg>`));
+}
