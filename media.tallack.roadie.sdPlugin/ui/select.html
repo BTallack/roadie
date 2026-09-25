@@ -37,16 +37,18 @@
 	</sdpi-item>
 	<p class="note">On a Stream Deck+ dial these settings are ignored: turn to step through every player, press or tap to play or pause the selected one.</p>
 	<script>
-		// Show the fields for the chosen mode.
+		// Show the fields for the chosen mode. The client's didReceiveSettings carries the
+		// whole event (payload.settings); getSettings() resolves with the payload itself.
 		(() => {
 			const apply = (settings) => {
-				const cycle = settings && settings.mode === "cycle";
+				const cycle = !!settings && settings.mode === "cycle";
 				document.getElementById("pick-fields").hidden = cycle;
 				document.getElementById("cycle-fields").hidden = !cycle;
 			};
-			SDPIComponents.streamDeckClient.didReceiveSettings.subscribe((ev) => apply(ev.payload && ev.payload.settings));
+			const client = SDPIComponents.streamDeckClient;
+			client.didReceiveSettings.subscribe((ev) => apply(ev && ev.payload && ev.payload.settings));
 			document.addEventListener("DOMContentLoaded", () => {
-				SDPIComponents.streamDeckClient.getSettings().then((ev) => apply(ev && ev.payload ? ev.payload.settings : ev));
+				client.getSettings().then((payload) => apply(payload && payload.settings)).catch(() => {});
 				document.querySelector('sdpi-select[setting="mode"]').addEventListener("valuechange", (ev) => apply({ mode: ev.target.value }));
 			});
 		})();
