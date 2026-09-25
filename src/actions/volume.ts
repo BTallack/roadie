@@ -9,7 +9,7 @@ type Settings = PlayerSettings & {
 	mode?: VolumeMode;
 };
 
-/** The level on an arc. Keys step up, down or mute; dials turn. Groups use the group volume. */
+/** Louder, quieter, mute, or the level on an arc; dials turn. Groups use the group volume. */
 @action({ UUID: "media.tallack.roadie.volume" })
 export class VolumeAction extends PlayerAction<Settings> {
 	protected override async draw({ action, settings, player, name, caption }: KeyContext<Settings>): Promise<void> {
@@ -29,8 +29,10 @@ export class VolumeAction extends PlayerAction<Settings> {
 	override async onKeyDown(ev: KeyDownEvent<Settings>): Promise<void> {
 		const context = this.context(ev.action.id);
 		if (!context) return void (await ev.action.showAlert());
-		const { muted, group } = volumeOf(context.player);
+		const { level, muted, group } = volumeOf(context.player);
 		const mode = ev.payload.settings.mode ?? "up";
+		if (level === null) return void (await ev.action.showAlert());
+		if (mode === "level") return;
 		const command = mode === "mute" ? "players/cmd/volume_mute" : group ? `players/cmd/group_volume_${mode}` : `players/cmd/volume_${mode}`;
 		const args = mode === "mute" ? { player_id: context.player.player_id, muted: !muted } : { player_id: context.player.player_id };
 		await this.run(ev.action, () => session.command(command, args));

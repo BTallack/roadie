@@ -13,7 +13,7 @@ import { PlayerAction, type KeyContext, type PlayerSettings } from "./base";
 export class NowPlayingAction extends PlayerAction {
 	protected override tick = 1000;
 
-	protected override async draw({ action, player, queue, name }: KeyContext<PlayerSettings>): Promise<void> {
+	protected override async draw({ action, player, queue, name, caption }: KeyContext<PlayerSettings>): Promise<void> {
 		const state = playbackState(player, queue);
 		const item = queue?.current_item;
 		const media = player.current_media;
@@ -22,7 +22,7 @@ export class NowPlayingAction extends PlayerAction {
 		const art = await session.artwork(item?.media_item ?? item, item ? undefined : media?.image_url);
 		const progress = session.progress(queue);
 		if (action.isKey()) {
-			await action.setImage(nowPlayingKey(name, art, { title, artist, state, available: player.available, progress }));
+			await action.setImage(nowPlayingKey(name, art, { title, artist, state, available: player.available, progress, caption }));
 		} else if (action.isDial()) {
 			const { level } = volumeOf(player);
 			await action.setFeedback({

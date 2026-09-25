@@ -3,7 +3,7 @@ import type { JsonValue } from "@elgato/utils";
 
 import type { Player, PlayerQueue } from "../ma/types";
 import { messageKey } from "../render";
-import { connectionSummary, session } from "../shared";
+import { connectionSummary, rememberDefaults, seedSettings, session } from "../shared";
 
 /** Every key names the player it's about. */
 export type PlayerSettings = {
@@ -48,7 +48,14 @@ export abstract class PlayerAction<T extends PlayerSettings = PlayerSettings> ex
 	protected abstract draw(context: KeyContext<T>): Promise<void> | void;
 
 	override onWillAppear(ev: WillAppearEvent<T>): void {
-		this.visible.set(ev.action.id, { action: ev.action, settings: ev.payload.settings });
+		let settings = ev.payload.settings;
+		// A key just dragged onto a page has no settings: start it from the last ones used,
+		// so a profile of keys for the same player takes one pick, not one per key.
+		if (Object.keys(settings).length === 0) {
+			settings = seedSettings(settings);
+			if (Object.keys(settings).length) void ev.action.setSettings(settings);
+		}
+		this.visible.set(ev.action.id, { action: ev.action, settings });
 		if (!this.ticker) this.ticker = setInterval(() => this.redrawAll(), this.tick);
 		void this.redraw(ev.action.id);
 	}
@@ -67,6 +74,7 @@ export abstract class PlayerAction<T extends PlayerSettings = PlayerSettings> ex
 
 	override onDidReceiveSettings(ev: DidReceiveSettingsEvent<T>): void {
 		this.visible.set(ev.action.id, { action: ev.action, settings: ev.payload.settings });
+		rememberDefaults(ev.payload.settings);
 		void this.redraw(ev.action.id);
 	}
 

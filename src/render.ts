@@ -77,12 +77,16 @@ function picture(art: Artwork | undefined): string {
 }
 
 /**
- * Glyph keys take `null` for the name when it's hidden and use a plain word instead. With
- * the caption off they draw the glyph alone, a little larger, at the key's centre.
+ * Glyph keys: the player's name as a small line at the top (or nothing, when hidden), the
+ * glyph in the middle, and a caption word at the bottom (or nothing). With both off the
+ * glyph alone sits at the key's centre, a little larger.
  */
-function glyphKey(glyph: string, caption: string, color: string, showCaption: boolean, glyphCenterY = 66): string {
-	if (!showCaption) return svg(`<g transform="translate(72 72) scale(1.2) translate(-72 -${glyphCenterY})">${glyph}</g>`);
-	return svg(glyph + label(caption, 132, 17, color));
+function glyphKey(glyph: string, name: string | null, caption: string | null, color: string): string {
+	const top = name !== null ? label(name, 22, 14, COLORS.secondary, 600) : "";
+	const bottom = caption !== null ? label(caption, 132, 17, color) : "";
+	const centerY = caption !== null ? (name !== null ? 76 : 70) : name !== null ? 84 : 72;
+	const scale = caption !== null || name !== null ? 1 : 1.2;
+	return svg(top + `<g transform="translate(72 ${centerY}) scale(${scale}) translate(-72 -66)">${glyph}</g>` + bottom);
 }
 
 export type Transport = "play" | "pause" | "next" | "previous" | "stop";
@@ -100,8 +104,7 @@ const CAPTIONS: Record<Transport, string> = { play: "Play", pause: "Pause", next
 /** A transport key: the glyph in the state's colour, grey when the player can't do it. */
 export function transportKey(kind: Transport, name: string | null, enabled: boolean, showCaption = true, color?: string): string {
 	const tint = !enabled ? COLORS.disabled : (color ?? COLORS.text);
-	const caption = enabled ? CAPTIONS[kind] : (name ?? CAPTIONS[kind]);
-	return glyphKey(GLYPHS[kind](tint), caption, enabled ? COLORS.text : COLORS.secondary, showCaption);
+	return glyphKey(GLYPHS[kind](tint), name, showCaption ? CAPTIONS[kind] : null, enabled ? COLORS.text : COLORS.secondary);
 }
 
 /** Play while paused or idle, pause while playing. */
@@ -110,29 +113,49 @@ export function playPauseKey(name: string | null, state: PlaybackState | undefin
 	return transportKey(playing ? "pause" : "play", name, enabled, showCaption, playing ? COLORS.paused : COLORS.playing);
 }
 
-export type VolumeMode = "up" | "down" | "mute";
+export type VolumeMode = "up" | "down" | "mute" | "level";
 
-/** The level on an arc with the number; the mode's arrow or a muted speaker beside it. */
-export function volumeKey(name: string | null, level: number | null, muted: boolean, mode: VolumeMode, showCaption = true): string {
-	const fraction = level === null ? 0 : Math.max(0, Math.min(1, level / 100));
-	const color = level === null ? COLORS.disabled : muted ? COLORS.paused : COLORS.accent;
-	const arc = 2 * Math.PI * 40 * 0.75;
-	const cy = showCaption ? 66 : 72;
-	const gauge =
-		`<circle cx="72" cy="${cy}" r="40" fill="none" stroke="${COLORS.track}" stroke-width="9" stroke-dasharray="${arc} 999" transform="rotate(135 72 ${cy})" stroke-linecap="round"/>` +
-		`<circle cx="72" cy="${cy}" r="40" fill="none" stroke="${color}" stroke-width="9" stroke-dasharray="${arc * fraction} 999" transform="rotate(135 72 ${cy})" stroke-linecap="round"/>`;
-	const centre = muted ? `<path d="M52 ${cy - 8} h10 l12 -10 v36 l-12 -10 h-10 z" fill="${COLORS.paused}"/><path d="M84 ${cy - 8} l14 16 M98 ${cy - 8} l-14 16" stroke="${COLORS.paused}" stroke-width="5" stroke-linecap="round"/>` : label(level === null ? "–" : String(Math.round(level)), cy + 8, 26, COLORS.text, 700);
-	const badge =
-		mode === "up"
-			? `<path d="M112 ${cy + 26} l8 -10 l8 10" fill="none" stroke="${COLORS.secondary}" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>`
-			: mode === "down"
-				? `<path d="M112 ${cy + 16} l8 10 l8 -10" fill="none" stroke="${COLORS.secondary}" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>`
-				: "";
-	const caption = mode === "mute" ? (muted ? "Unmute" : "Mute") : mode === "up" ? "Louder" : "Quieter";
-	return svg(gauge + centre + badge + (showCaption ? label(name ?? caption, 132, 16, COLORS.secondary, 500) : ""));
+/** A speaker glyph centred on (72, 66): waves, or a cross when muted. */
+function speakerGlyph(color: string, muted: boolean): string {
+	const body = `<path d="M34 52 h16 l20 -18 v64 l-20 -18 h-16 z" fill="${color}"/>`;
+	if (muted) return body + `<path d="M84 54 l22 24 M106 54 l-22 24" stroke="${color}" stroke-width="7" stroke-linecap="round"/>`;
+	return body + `<path d="M82 54 q12 12 0 24 M94 44 q22 22 0 44" fill="none" stroke="${color}" stroke-width="7" stroke-linecap="round"/>`;
 }
 
-export type NowPlaying = { title: string | null; artist: string | null; state: PlaybackState | undefined; available: boolean; progress: number | null };
+/**
+ * Volume keys. `up` and `down` show a speaker with a plus or minus; `mute` a speaker,
+ * crossed and yellow while muted; `level` the number on an arc. All grey out when the
+ * player has no volume.
+ */
+export function volumeKey(name: string | null, level: number | null, muted: boolean, mode: VolumeMode, showCaption = true): string {
+	const color = level === null ? COLORS.disabled : muted ? COLORS.paused : COLORS.accent;
+	const captionColor = level === null ? COLORS.secondary : COLORS.text;
+	if (mode === "level") {
+		const fraction = level === null ? 0 : Math.max(0, Math.min(1, level / 100));
+		const cy = showCaption ? (name !== null ? 76 : 70) : name !== null ? 84 : 72;
+		const arc = 2 * Math.PI * 38 * 0.75;
+		const gauge =
+			`<circle cx="72" cy="${cy}" r="38" fill="none" stroke="${COLORS.track}" stroke-width="9" stroke-dasharray="${arc} 999" transform="rotate(135 72 ${cy})" stroke-linecap="round"/>` +
+			`<circle cx="72" cy="${cy}" r="38" fill="none" stroke="${color}" stroke-width="9" stroke-dasharray="${arc * fraction} 999" transform="rotate(135 72 ${cy})" stroke-linecap="round"/>`;
+		const centre = muted
+			? `<g transform="translate(72 ${cy}) scale(0.55) translate(-72 -66)">${speakerGlyph(COLORS.paused, true)}</g>`
+			: label(level === null ? "–" : String(Math.round(level)), cy + 9, 26, level === null ? COLORS.secondary : COLORS.text, 700);
+		const top = name !== null ? label(name, 22, 14, COLORS.secondary, 600) : "";
+		const bottom = showCaption ? label(muted ? "Muted" : "Volume", 132, 17, captionColor) : "";
+		return svg(top + gauge + centre + bottom);
+	}
+	const badge =
+		mode === "up"
+			? `<path d="M108 100 h20 M118 90 v20" stroke="${color}" stroke-width="7" stroke-linecap="round"/>`
+			: mode === "down"
+				? `<path d="M108 100 h20" stroke="${color}" stroke-width="7" stroke-linecap="round"/>`
+				: "";
+	const glyph = speakerGlyph(color, mode === "mute" ? muted : false) + badge;
+	const caption = mode === "mute" ? (muted ? "Unmute" : "Mute") : mode === "up" ? "Louder" : "Quieter";
+	return glyphKey(glyph, name, showCaption ? caption : null, captionColor);
+}
+
+export type NowPlaying = { title: string | null; artist: string | null; state: PlaybackState | undefined; available: boolean; progress: number | null; /** Draw the title and artist band (off: artwork alone). */ caption?: boolean };
 
 /** Artwork with the title and artist over a dark band; a state dot and a thin progress bar. */
 export function nowPlayingKey(name: string | null, art: Artwork | undefined, now: NowPlaying): string {
@@ -141,7 +164,7 @@ export function nowPlayingKey(name: string | null, art: Artwork | undefined, now
 	if (!art) body += `<path d="M62 100 V44 l40 -10 v50" fill="none" stroke="${COLORS.idle}" stroke-width="6" stroke-linejoin="round"/><circle cx="52" cy="100" r="11" fill="${COLORS.idle}"/><circle cx="92" cy="84" r="11" fill="${COLORS.idle}"/>`;
 	if (name !== null) body += `<rect width="144" height="30" fill="#000000" opacity="0.55"/>` + label(name, 21, 15, COLORS.text, 600, 12, "start", 112) + `<circle cx="128" cy="15" r="6" fill="${color}"/>`;
 	else body += `<circle cx="128" cy="16" r="7" fill="${color}" stroke="#000000" stroke-opacity="0.5" stroke-width="2"/>`;
-	if (now.title || !now.available) {
+	if ((now.title && now.caption !== false) || !now.available) {
 		const title = now.available ? now.title! : "Unavailable";
 		const twoLines = now.available && !!now.artist;
 		body += `<rect y="${twoLines ? 92 : 108}" width="144" height="${twoLines ? 52 : 36}" fill="#000000" opacity="0.6"/>`;

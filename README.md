@@ -13,10 +13,13 @@ through any other service. It isn't an official Music Assistant project.
 | Play / Pause | Play while paused or idle, pause while playing; grey when the player can't | Toggles |
 | Next / Previous | Skip glyph, lit while something is playing or paused | Skips |
 | Stop | Stop glyph, lit while something is playing or paused | Stops |
-| Volume | The level on an arc, muted state; up, down or mute chosen in settings | Steps or mutes. On a dial: turn for volume, press to mute |
+| Volume | One of four looks, chosen in settings: volume up, volume down, mute (yellow while muted), or the current level on an arc | Steps, mutes, or nothing for the level key. On a dial: turn for volume, press to mute |
 | Playlist | The playlist's artwork and name; framed green while the player plays from it, yellow while paused on it | Loads it on the player: replace the queue, play now, play next, or add to the end; shuffle on, off or as the server is set |
 
-Every key names its player. Keys can hide the player name, and glyph keys their caption.
+Every key names its player, shown as a small line at the top unless "Hide player name" is
+ticked; glyph keys can also drop their caption word, and the now-playing key its title and
+artist. A new key starts with the settings the last key was given (player, hide switches,
+volume mode, enqueue mode), so a row of keys for one room takes one pick.
 Group players (Sonos sync groups, Music Assistant groups) work like any other, with the
 group's volume. Players on another source (Spotify Connect, line-in) show what the player
 reports and take the commands it supports.

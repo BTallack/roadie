@@ -11,21 +11,13 @@
 	<sdpi-item label="Player">
 		<sdpi-select setting="playerId" datasource="getPlayers" loading="Loading players…" placeholder="Choose a player" hot-reload></sdpi-select>
 	</sdpi-item>
-	<sdpi-item label="Key">
-		<sdpi-select setting="mode" default="up">
-			<option value="up">Volume up</option>
-			<option value="down">Volume down</option>
-			<option value="mute">Mute / unmute</option>
-			<option value="level">Current volume (display only)</option>
-		</sdpi-select>
-	</sdpi-item>
+	<p class="note">Press to play or pause. On a Stream Deck+ dial: turn for volume, press or tap to play or pause.</p>
 	<sdpi-item label="Show">
 		<sdpi-checkbox setting="hideName" label="Hide player name"></sdpi-checkbox>
 	</sdpi-item>
 	<sdpi-item>
-		<sdpi-checkbox setting="hideCaption" label="Hide caption"></sdpi-checkbox>
+		<sdpi-checkbox setting="hideCaption" label="Hide title and artist, artwork only"></sdpi-checkbox>
 	</sdpi-item>
-	<p class="note">Up and down step by the server's volume step. On a Stream Deck+ dial the key setting is ignored: turn for volume, press or tap to mute.</p>
 
 	<div class="section">
 		<div class="heading">Music Assistant server</div>

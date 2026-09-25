@@ -1,4 +1,5 @@
 import streamDeck from "@elgato/streamdeck";
+import type { JsonValue } from "@elgato/utils";
 
 import { Session } from "./ma/session";
 import type { Player, PlayerQueue } from "./ma/types";
@@ -7,7 +8,32 @@ import type { Player, PlayerQueue } from "./ma/types";
 export type GlobalSettings = {
 	url?: string;
 	token?: string;
+	/** The last settings a key was given, to start the next new key from. */
+	defaults?: Record<string, JsonValue | undefined>;
 };
+
+/** Settings that are about one key alone, never carried to a new one. */
+const NOT_REMEMBERED = new Set(["playlistUri"]);
+
+let defaults: Record<string, JsonValue | undefined> = {};
+
+/** Keeps a key's settings as the starting point for the next new key, in memory and in Stream Deck. */
+export function rememberDefaults(settings: Record<string, JsonValue | undefined>): void {
+	const kept = Object.fromEntries(Object.entries(settings).filter(([key, value]) => !NOT_REMEMBERED.has(key) && value !== undefined));
+	if (JSON.stringify({ ...defaults, ...kept }) === JSON.stringify(defaults)) return;
+	defaults = { ...defaults, ...kept };
+	void streamDeck.settings.getGlobalSettings<GlobalSettings>().then((global) => streamDeck.settings.setGlobalSettings({ ...global, defaults }));
+}
+
+/** What a brand-new key starts with. */
+export function seedSettings<T extends Record<string, JsonValue | undefined>>(settings: T): T {
+	return { ...defaults, ...settings } as T;
+}
+
+/** Called with the global settings whenever Stream Deck sends them. */
+export function loadDefaults(global: GlobalSettings): void {
+	if (global.defaults && typeof global.defaults === "object") defaults = { ...global.defaults };
+}
 
 /** The one server connection all keys share. */
 export const session = new Session({

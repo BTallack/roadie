@@ -27,7 +27,7 @@
 			"UUID": "media.tallack.roadie.nowplaying",
 			"Icon": "imgs/actions/nowplaying",
 			"Tooltip": "Artwork, title and artist for one player. Press to play or pause. On a dial: turn for volume.",
-			"PropertyInspectorPath": "ui/player.html",
+			"PropertyInspectorPath": "ui/nowplaying.html",
 			"Controllers": ["Keypad", "Encoder"],
 			"States": [{ "Image": "imgs/actions/nowplaying-key", "ShowTitle": false }],
 			"Encoder": {
@@ -75,7 +75,7 @@
 			"Name": "Volume",
 			"UUID": "media.tallack.roadie.volume",
 			"Icon": "imgs/actions/volume",
-			"Tooltip": "Volume up, down or mute as a key; on a dial, turn for volume and press to mute.",
+			"Tooltip": "Volume up, volume down, mute, or the current level as a key; on a dial, turn for volume and press to mute.",
 			"PropertyInspectorPath": "ui/volume.html",
 			"Controllers": ["Keypad", "Encoder"],
 			"States": [{ "Image": "imgs/actions/volume-key", "ShowTitle": false }],

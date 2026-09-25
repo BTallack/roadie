@@ -21,6 +21,11 @@ found by mDNS later).
   one; `streamdeck validate` is clean apart from the repo URL not existing yet. Linked into
   Brennan's Stream Deck app for a first try. Not done from the v1 list: "Selected on this
   deck" (phase 2 item, deferred to phase 4), shuffle/repeat/power keys, marketplace polish.
+- 25 Sep 2026, later: first feedback from the deck. Glyph keys (play/pause, next, previous,
+  stop, volume) now always show the player name as a small top line unless hidden, instead
+  of only while idle. Now playing has its own panel where the caption switch hides title and
+  artist. Volume has four looks: up, down, mute, and the current level (display only). New
+  keys start from the last settings given to any key (kept in global settings).
 - Brennan's server: Music Assistant 2.10.4 (schema 65), Home Assistant add-on,
   `http://192.168.1.10:8095`. 17 players (Sonos, three sync groups), 98 playlists across
   Spotify, Apple Music, Plex and Music Assistant's own.
