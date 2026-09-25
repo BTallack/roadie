@@ -23,7 +23,7 @@ through any other service. It isn't an official Music Assistant project.
 | Favourite | A heart, filled while the current track is a favourite | Adds what's playing to your favourites (on a radio stream, the track playing); for a library track already favourited, takes it out. Needs a user with library access, so the `user` role rather than `guest` |
 | Group | Two speakers, linked and green while the player is grouped under the chosen target | Joins the player to the target, or leaves it. Only players the server says can group together are offered |
 | Move queue | An arrow to the chosen player | Moves the player's queue to that player and carries on there |
-| Select player | A room button: the player's name and what's playing, framed while it's the deck's selection | Selects that player for every key set to "Selected on this deck". On a dial: turn to step through players, the strip shows the selected one's now playing, press to play or pause |
+| Select player | A room button: the player's name and what's playing, framed while it's the deck's selection. Or, in cycle mode, the current selection with its place in your list (2 / 5) | Selects that player for every key set to "Selected on this deck"; in cycle mode, each press moves the selection to the next ticked player. On a dial: turn to step through players, the strip shows the selected one's now playing, press to play or pause |
 
 Every key names its player, or follows the deck's selection ("Selected on this deck", the
 first entry in every player picker) so one row of keys can serve whichever room was last

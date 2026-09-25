@@ -86,6 +86,8 @@ export abstract class PlayerAction<T extends PlayerSettings = PlayerSettings> ex
 		const payload = ev.payload as { event?: string } | undefined;
 		if (payload?.event === "getPlayers") {
 			await streamDeck.ui.sendToPropertyInspector({ event: "getPlayers", items: playerItems() });
+		} else if (payload?.event === "getPlayersOnly") {
+			await streamDeck.ui.sendToPropertyInspector({ event: "getPlayersOnly", items: playerItems(false) });
 		} else if (payload?.event === "getTargets") {
 			// Players the key's own player may group with.
 			const settings = await ev.action.getSettings();

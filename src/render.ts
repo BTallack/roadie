@@ -277,9 +277,10 @@ export function transferKey(name: string | null, targetName: string | null, enab
 }
 
 /** A player as a room button: its name large, its state, framed while it's the deck's selection. */
-export function selectKey(playerName: string, state: PlaybackState | undefined, available: boolean, selected: boolean, nowPlaying: string | null): string {
+export function selectKey(playerName: string, state: PlaybackState | undefined, available: boolean, selected: boolean, nowPlaying: string | null, position?: string): string {
 	const color = stateColor(state, available);
 	let body = `<circle cx="72" cy="48" r="12" fill="${color}"/>`;
+	if (position) body += label(position, 20, 12, COLORS.secondary, 600, 132, "end", 120);
 	body += label(playerName, 88, 20, COLORS.text, 700);
 	if (nowPlaying) body += label(nowPlaying, 114, 13, COLORS.secondary, 500);
 	else body += label(stateLabel(state, available), 114, 13, COLORS.secondary, 500);

@@ -1,17 +1,25 @@
-import { action, type DialDownEvent, type DialRotateEvent, type KeyDownEvent, type TouchTapEvent, type WillAppearEvent } from "@elgato/streamdeck";
+import { action, type DialDownEvent, type DialRotateEvent, type DidReceiveSettingsEvent, type KeyDownEvent, type TouchTapEvent, type WillAppearEvent } from "@elgato/streamdeck";
 
 import { artworkURL, selectKey, stateColor } from "../render";
 import { canTransport, playbackState, selectPlayer, session, volumeOf } from "../shared";
 import { PlayerAction, type KeyContext, type PlayerSettings } from "./base";
 
+type Settings = PlayerSettings & {
+	/** A room button for one player (default), or a key that steps through a list. */
+	mode?: "pick" | "cycle";
+	/** The players a cycling key steps through, in the order ticked. */
+	players?: string[];
+};
+
 /**
- * Chooses the deck's player, for every key set to "Selected on this deck". As a key it's a
- * room button: press to select, framed while selected. On a Stream Deck+ dial, turning
- * steps through the players and the strip shows the selected one's now playing; press
- * plays or pauses it.
+ * Chooses the deck's player, for every key set to "Selected on this deck". As a key it's
+ * either a room button (press to select one player, framed while selected) or a cycling
+ * key that steps through a chosen list on each press and shows who's current. On a
+ * Stream Deck+ dial, turning steps through every player and the strip shows the selected
+ * one's now playing; press plays or pauses it.
  */
 @action({ UUID: "media.tallack.roadie.select" })
-export class SelectPlayerAction extends PlayerAction {
+export class SelectPlayerAction extends PlayerAction<Settings> {
 	protected override tick = 2000;
 
 	constructor() {
@@ -19,18 +27,44 @@ export class SelectPlayerAction extends PlayerAction {
 		session.on("selected", () => this.redrawAll());
 	}
 
-	override onWillAppear(ev: WillAppearEvent<PlayerSettings>): void {
+	override onWillAppear(ev: WillAppearEvent<Settings>): void {
 		super.onWillAppear(ev);
-		// A dial follows the selection itself; it doesn't need a player of its own.
-		if (ev.action.isDial() && ev.payload.settings.playerId !== "selected") void ev.action.setSettings({ ...ev.payload.settings, playerId: "selected" });
+		void this.follow(ev);
 	}
 
-	protected override async draw({ action, player, queue }: KeyContext<PlayerSettings>): Promise<void> {
+	override onDidReceiveSettings(ev: DidReceiveSettingsEvent<Settings>): void {
+		super.onDidReceiveSettings(ev);
+		void this.follow(ev);
+	}
+
+	/** Dials and cycling keys show the selection itself, so they read the `selected` player. */
+	private async follow(ev: { action: WillAppearEvent<Settings>["action"]; payload: { settings: Settings } }): Promise<void> {
+		const follows = ev.action.isDial() || ev.payload.settings.mode === "cycle";
+		if (follows && ev.payload.settings.playerId !== "selected") {
+			const settings = { ...ev.payload.settings, playerId: "selected" };
+			this.visible.set(ev.action.id, { action: ev.action, settings });
+			await ev.action.setSettings(settings);
+			await this.redraw(ev.action.id);
+		}
+	}
+
+	/** The cycling key's list, in ticked order, keeping only players that still exist. */
+	private cycle(settings: Settings): string[] {
+		return (settings.players ?? []).filter((id) => session.players.has(id));
+	}
+
+	protected override async draw({ action, settings, player, queue }: KeyContext<Settings>): Promise<void> {
 		const state = playbackState(player, queue);
 		const item = queue?.current_item;
 		const title = item?.media_item?.name ?? item?.name ?? player.current_media?.title ?? null;
 		if (action.isKey()) {
-			await this.setImage(action, selectKey(player.name, state, player.available, session.selectedPlayerId === player.player_id, title));
+			if (settings.mode === "cycle") {
+				const list = this.cycle(settings);
+				const at = list.indexOf(player.player_id);
+				await this.setImage(action, selectKey(player.name, state, player.available, false, title, list.length ? `${at < 0 ? "–" : at + 1} / ${list.length}` : "No players ticked"));
+			} else {
+				await this.setImage(action, selectKey(player.name, state, player.available, session.selectedPlayerId === player.player_id, title));
+			}
 		} else if (action.isDial()) {
 			const artist = item?.media_item?.artists?.map((artist) => artist.name).join(", ") ?? player.current_media?.artist ?? null;
 			const art = await session.artwork(item?.media_item ?? item, item ? undefined : player.current_media?.image_url);
@@ -43,7 +77,14 @@ export class SelectPlayerAction extends PlayerAction {
 		}
 	}
 
-	override async onKeyDown(ev: KeyDownEvent<PlayerSettings>): Promise<void> {
+	override async onKeyDown(ev: KeyDownEvent<Settings>): Promise<void> {
+		if (ev.payload.settings.mode === "cycle") {
+			const list = this.cycle(ev.payload.settings);
+			if (list.length === 0) return void (await ev.action.showAlert());
+			const at = list.indexOf(session.selectedPlayerId ?? "");
+			selectPlayer(list[(at + 1) % list.length]);
+			return;
+		}
 		const id = ev.payload.settings.playerId;
 		const player = id && id !== "selected" ? session.player(id) : undefined;
 		if (!player) return void (await ev.action.showAlert());
@@ -51,7 +92,7 @@ export class SelectPlayerAction extends PlayerAction {
 	}
 
 	/** Steps through the players in name order. */
-	override async onDialRotate(ev: DialRotateEvent<PlayerSettings>): Promise<void> {
+	override async onDialRotate(ev: DialRotateEvent<Settings>): Promise<void> {
 		const players = session.playerList();
 		if (players.length === 0) return;
 		const current = players.findIndex((player) => player.player_id === session.selectedPlayerId);
@@ -59,11 +100,11 @@ export class SelectPlayerAction extends PlayerAction {
 		selectPlayer(players[next].player_id);
 	}
 
-	override async onDialDown(ev: DialDownEvent<PlayerSettings>): Promise<void> {
+	override async onDialDown(ev: DialDownEvent<Settings>): Promise<void> {
 		await this.playPause(ev.action.id);
 	}
 
-	override async onTouchTap(ev: TouchTapEvent<PlayerSettings>): Promise<void> {
+	override async onTouchTap(ev: TouchTapEvent<Settings>): Promise<void> {
 		await this.playPause(ev.action.id);
 	}
 
