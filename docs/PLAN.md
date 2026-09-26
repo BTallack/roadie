@@ -34,6 +34,12 @@ found by mDNS later).
   Album, Artist radio, and Select player (key and dial) with the "Selected on this deck"
   entry in every player picker. Favourites need `library.write`, which the guest role
   lacks, so the README says to use the `user` role for that key. Shipped to GitHub.
+- 26 Sep 2026: audit before 0.2.0. Fixed a socket leak when the first state load fails
+  (it reconnected twice), coalesced redraws (one pass per burst of events), skipped
+  unchanged images, caught every settings write and image send, validated artwork types
+  and sizes before embedding, URL-encoded proxy ids, moved the pure state reads to
+  `ma/playing.ts` with tests (26 total). Added CHANGELOG and README privacy notes.
+  Released 0.2.0.
 - Brennan's server: Music Assistant 2.10.4 (schema 65), Home Assistant add-on,
   `http://192.168.1.10:8095`. 17 players (Sonos, three sync groups), 98 playlists across
   Spotify, Apple Music, Plex and Music Assistant's own.

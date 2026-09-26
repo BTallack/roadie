@@ -1,6 +1,6 @@
 {
   "name": "egs-music-assistant",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Stream Deck plugin for Music Assistant: playback controls per player, and keys that load your playlists.",
   "private": true,
   "type": "module",

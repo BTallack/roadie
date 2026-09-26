@@ -29,6 +29,8 @@ type Settings = PlayerSettings & {
 @action({ UUID: "media.tallack.roadie.select" })
 export class SelectPlayerAction extends PlayerAction<Settings> {
 	protected override tick = 2000;
+	// A room button's player, or a cycling key's list, is that key's own business.
+	protected override remembers = false;
 
 	constructor() {
 		super();

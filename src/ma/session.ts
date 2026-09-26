@@ -124,10 +124,11 @@ export class Session extends EventEmitter {
 	private async connect(generation: number): Promise<void> {
 		const base = this.base;
 		if (!base) return;
+		let connection: Connection | undefined;
 		try {
 			this.serverInfo = await fetchServerInfo(base);
 			if (generation !== this.generation) return;
-			const connection = new Connection(base, this.token, this.log);
+			connection = new Connection(base, this.token, this.log);
 			connection.on("event", (event: MassEvent) => {
 				if (generation === this.generation) this.handleEvent(event);
 			});
@@ -148,6 +149,10 @@ export class Session extends EventEmitter {
 			this.heartbeat = setInterval(() => void this.beat(generation), 30_000);
 			this.emit("change");
 		} catch (error) {
+			// A socket that opened but whose state load failed would otherwise linger and
+			// report its own close later, starting a second reconnect.
+			connection?.removeAllListeners();
+			connection?.close();
 			if (generation !== this.generation) return;
 			this.lastError = error instanceof Error ? error.message : String(error);
 			if (isAuthError(error)) {
@@ -384,7 +389,10 @@ export type Artwork = { data: Buffer; type: string };
 async function fetchArtwork(url: string): Promise<Artwork | undefined> {
 	const response = await fetch(url, { signal: AbortSignal.timeout(10_000) });
 	if (!response.ok) return undefined;
-	const type = response.headers.get("content-type") ?? "image/jpeg";
-	if (!type.startsWith("image/")) return undefined;
-	return { data: Buffer.from(await response.arrayBuffer()), type };
+	// The type goes into a data URL inside the key's SVG, so only a plain image type will do.
+	const type = (response.headers.get("content-type") ?? "image/jpeg").split(";")[0].trim().toLowerCase();
+	if (!/^image\/[a-z0-9.+-]+$/.test(type)) return undefined;
+	const data = Buffer.from(await response.arrayBuffer());
+	if (data.length === 0 || data.length > 2_000_000) return undefined;
+	return { data, type };
 }

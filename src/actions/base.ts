@@ -44,6 +44,9 @@ export abstract class PlayerAction<T extends PlayerSettings = PlayerSettings> ex
 	private readonly animated = new Set<string>();
 	/** How often visible keys redraw on their own, in ms. */
 	protected tick = 30_000;
+	/** Whether this action's settings seed new keys (room buttons and cycling keys don't). */
+	protected remembers = true;
+	private redrawTimer?: NodeJS.Timeout;
 	/** The frame rate while any key scrolls text. */
 	private static readonly FRAME_MS = 250;
 
@@ -96,7 +99,7 @@ export abstract class PlayerAction<T extends PlayerSettings = PlayerSettings> ex
 
 	override onDidReceiveSettings(ev: DidReceiveSettingsEvent<T>): void {
 		this.visible.set(ev.action.id, { action: ev.action, settings: ev.payload.settings });
-		rememberDefaults(ev.payload.settings);
+		if (this.remembers) rememberDefaults(ev.payload.settings);
 		void this.redraw(ev.action.id);
 	}
 
@@ -123,8 +126,16 @@ export abstract class PlayerAction<T extends PlayerSettings = PlayerSettings> ex
 		}
 	}
 
+	/**
+	 * Redraws every visible key, coalesced: a burst of events (a second's worth of queue
+	 * time updates across many players) becomes one pass.
+	 */
 	protected redrawAll(): void {
-		for (const id of this.visible.keys()) void this.redraw(id);
+		if (this.redrawTimer) return;
+		this.redrawTimer = setTimeout(() => {
+			this.redrawTimer = undefined;
+			for (const id of this.visible.keys()) void this.redraw(id);
+		}, 40);
 	}
 
 	protected async redraw(id: string): Promise<void> {
@@ -135,7 +146,7 @@ export abstract class PlayerAction<T extends PlayerSettings = PlayerSettings> ex
 		const context = this.context(id);
 		if (!context) {
 			if (action.isKey()) await this.setImage(action, this.placeholder(settings));
-			else await action.setFeedback({ title: "Roadie", value: session.state === "unconfigured" ? "Set up" : session.state === "live" ? "Choose player" : connectionSummary() });
+			else await action.setFeedback({ title: "Roadie", value: session.state === "unconfigured" ? "Set up" : session.state === "live" ? "Choose player" : connectionSummary() }).catch(() => undefined);
 			return;
 		}
 		try {
@@ -145,11 +156,16 @@ export abstract class PlayerAction<T extends PlayerSettings = PlayerSettings> ex
 		}
 	}
 
-	/** Draws a key and remembers the image, so `run()` can lay a tick over it. */
+	/** Draws a key when the image changed, and remembers it so `run()` can lay a tick over it. */
 	protected async setImage(action: Action<T>, image: string): Promise<void> {
 		if (!action.isKey()) return;
+		if (this.lastImage.get(action.id) === image) return;
 		this.lastImage.set(action.id, image);
-		await action.setImage(image);
+		try {
+			await action.setImage(image);
+		} catch (error) {
+			streamDeck.logger.warn(`setImage failed: ${error instanceof Error ? error.message : String(error)}`);
+		}
 	}
 
 	/** The key's player and queue, or nothing when it can't be drawn yet. */

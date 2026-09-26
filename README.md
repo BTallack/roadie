@@ -54,6 +54,21 @@ and enter your server's address and a token in the key's settings (once, shared 
   the Favourite key needs the user role. A player filter on that user limits what the deck
   can reach.
 
+## Privacy and security
+
+- Roadie talks to one host: the Music Assistant server you enter. Nothing goes to any
+  other service. Artwork comes through the server's own image proxy; the one exception is
+  a player that reports a direct image URL for an external source, which is fetched as
+  given.
+- The token is kept in Stream Deck's global settings, on disk with the rest of your
+  Stream Deck configuration, and sent only to that server. Use a dedicated Music Assistant
+  user for the deck, so the token can be revoked on its own and, with a player filter,
+  reaches only the players you choose.
+- Logging stays at "info": the plugin never logs the token or settings messages.
+- Everything the server sends is treated as data: names go through an escape before they
+  reach a key image, and artwork is embedded only when the server answers with a plain
+  image type.
+
 ## Develop
 
 Needs Node 24.

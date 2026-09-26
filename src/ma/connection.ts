@@ -259,7 +259,7 @@ export const IMAGE_SIZES = [0, 80, 160, 256, 512, 1024] as const;
  */
 export function imageURL(base: string, image: MediaItemImage | undefined, size: (typeof IMAGE_SIZES)[number] = 160): string | undefined {
 	if (!image) return undefined;
-	if (image.proxy_id) return `${base}/imageproxy/${image.proxy_id}?size=${size}`;
+	if (image.proxy_id) return `${base}/imageproxy/${encodeURIComponent(image.proxy_id)}?size=${size}`;
 	if (image.remotely_accessible && /^https?:\/\//.test(image.path)) return image.path;
 	return undefined;
 }

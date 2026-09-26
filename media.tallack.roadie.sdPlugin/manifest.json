@@ -1,6 +1,6 @@
 {
 	"Name": "Roadie for Music Assistant",
-	"Version": "0.1.0.0",
+	"Version": "0.2.0.0",
 	"Author": "Tallack Media",
 	"Description": "Roadie puts your Music Assistant players on Stream Deck: now playing, play/pause, skip, volume, and keys that load your playlists. Talks straight to your own Music Assistant server.",
 	"URL": "https://github.com/BTallack/roadie",
