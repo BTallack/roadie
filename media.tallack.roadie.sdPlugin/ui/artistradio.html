@@ -8,6 +8,9 @@
 	<link rel="stylesheet" href="server.css" />
 </head>
 <body>
+	<sdpi-item label="Search">
+		<sdpi-textfield id="search" placeholder="Type to narrow the artists"></sdpi-textfield>
+	</sdpi-item>
 	<sdpi-item label="Artist">
 		<sdpi-select setting="artistUri" datasource="getArtists" loading="Loading artists…" placeholder="Choose an artist" hot-reload></sdpi-select>
 	</sdpi-item>
@@ -44,6 +47,11 @@
 			<sdpi-item label="Address">
 				<sdpi-textfield setting="url" global placeholder="homeassistant.local:8095"></sdpi-textfield>
 			</sdpi-item>
+			<sdpi-item>
+				<sdpi-button id="find">Find on my network</sdpi-button>
+			</sdpi-item>
+			<p class="find-state" id="find-state" hidden></p>
+			<div id="found"></div>
 			<sdpi-item label="Token">
 				<sdpi-password setting="token" global placeholder="Long-lived access token"></sdpi-password>
 			</sdpi-item>
@@ -53,5 +61,25 @@
 		</div>
 		<p class="note" id="note">Set once and shared by every Roadie key. The plugin talks only to this server, on your network. Make a token in Music Assistant under Settings, Profile, Long-lived access tokens. A user with the guest role is enough; give it a player filter to limit what the deck can reach.</p>
 	</div>
+	<script>
+		// Search narrows the picker on the server, so libraries of thousands stay usable.
+		(() => {
+			const client = SDPIComponents.streamDeckClient;
+			let timer;
+			document.addEventListener("DOMContentLoaded", () => {
+				const field = document.getElementById("search");
+				const select = document.querySelector("sdpi-select[datasource]");
+				const ask = (text) => client.send("sendToPlugin", { event: select.getAttribute("datasource"), search: text });
+				const changed = (ev) => {
+					const input = ev.composedPath ? ev.composedPath()[0] : ev.target;
+					const text = (input && typeof input.value === "string" ? input.value : field.value || "").trim();
+					clearTimeout(timer);
+					timer = setTimeout(() => ask(text), 300);
+				};
+				field.addEventListener("input", changed);
+				field.addEventListener("valuechange", changed);
+			});
+		})();
+	</script>
 </body>
 </html>

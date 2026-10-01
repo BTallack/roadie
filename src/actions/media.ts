@@ -34,7 +34,8 @@ export abstract class MediaAction extends PlayerAction<MediaSettings> {
 	protected abstract readonly uriKey: "playlistUri" | "radioUri" | "albumUri" | "artistUri";
 	/** The settings panel's datasource event, e.g. `getPlaylists`. */
 	protected abstract readonly listEvent: string;
-	protected abstract choices(): Promise<MediaChoice[]>;
+	/** The picker's list: everything, or what matches a search typed in the settings panel. */
+	protected abstract choices(search?: string): Promise<MediaChoice[]>;
 
 	/** What to hand play_media for the chosen item (an artist becomes an artist radio). */
 	protected playUri(uri: string): string {
@@ -104,16 +105,25 @@ export abstract class MediaAction extends PlayerAction<MediaSettings> {
 	}
 
 	override async onSendToPlugin(ev: SendToPluginEvent<JsonValue, MediaSettings>): Promise<void> {
-		const payload = ev.payload as { event?: string } | undefined;
+		const payload = ev.payload as { event?: string; search?: string } | undefined;
 		if (payload?.event !== this.listEvent) return super.onSendToPlugin(ev);
+		const search = typeof payload.search === "string" ? payload.search.trim() : "";
 		try {
-			const choices = await this.choices();
+			const choices = await this.choices(search || undefined);
 			const item = (choice: MediaChoice) => ({ label: choice.label ?? choice.name, value: choice.uri });
 			const groups = new Map<string, MediaChoice[]>();
 			for (const choice of choices) groups.set(choice.group, [...(groups.get(choice.group) ?? []), choice]);
 			const favourites = choices.filter((choice) => choice.favorite);
 			const seen = new Set<string>();
 			const items: JsonValue[] = [];
+			// While searching, the key's current choice stays in the list, so the picker never
+			// shows it blank just because it doesn't match.
+			const current = (await ev.action.getSettings())[this.uriKey];
+			if (search && typeof current === "string" && !choices.some((choice) => choice.uri === current)) {
+				const item_ = await session.item(current).catch(() => undefined);
+				if (item_) items.push({ label: "Current", children: [{ label: item_.name, value: current }] });
+			}
+			if (search && choices.length === 0) items.push({ label: `Nothing matches “${search}”`, value: "", disabled: true });
 			if (favourites.length) items.push({ label: "Favourites", children: favourites.filter((choice) => !seen.has(choice.uri) && seen.add(choice.uri)).map(item) });
 			if (groups.size === 1) items.push(...choices.map(item));
 			else for (const [group, members] of [...groups].sort(([a], [b]) => a.localeCompare(b))) items.push({ label: group, children: members.map(item) });

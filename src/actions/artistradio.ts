@@ -9,8 +9,8 @@ export class ArtistRadioAction extends MediaAction {
 	protected readonly kind = "artist" as const;
 	protected readonly uriKey = "artistUri" as const;
 	protected readonly listEvent = "getArtists";
-	protected choices() {
-		return session.artists();
+	protected choices(search?: string) {
+		return session.artists(search);
 	}
 
 	protected override playUri(uri: string): string {

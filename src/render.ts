@@ -161,7 +161,7 @@ export function playPauseKey(name: string | null, state: PlaybackState | undefin
 	return transportKey(playing ? "pause" : "play", name, enabled, showCaption, playing ? COLORS.paused : COLORS.playing);
 }
 
-export type VolumeMode = "up" | "down" | "mute" | "level" | "level_mute";
+export type VolumeMode = "up" | "down" | "mute" | "level" | "level_mute" | "set";
 
 export type VolumeStyle = "waves" | "signs";
 
@@ -178,9 +178,10 @@ function speakerGlyph(color: string, waves: 0 | 1 | 2 | 3 | "muted"): string {
  * `waves` style (as on Apple's keyboards), or with two waves and a plus or minus in the
  * `signs` style. `mute` shows a speaker with no waves (`waves`) or crossed (`signs`),
  * yellow while muted. `level` and `level_mute` show the number on an arc (the latter's
- * caption says a press mutes). All grey out when the player has no volume.
+ * caption says a press mutes). `set` shows the preset level beside a speaker, lit while the
+ * player is at it. All grey out when the player has no volume.
  */
-export function volumeKey(name: string | null, level: number | null, muted: boolean, mode: VolumeMode, showCaption = true, style: VolumeStyle = "waves"): string {
+export function volumeKey(name: string | null, level: number | null, muted: boolean, mode: VolumeMode, showCaption = true, style: VolumeStyle = "waves", preset = 30): string {
 	const color = level === null ? COLORS.disabled : muted ? COLORS.paused : COLORS.accent;
 	const captionColor = level === null ? COLORS.secondary : COLORS.text;
 	if (mode === "level" || mode === "level_mute") {
@@ -196,6 +197,12 @@ export function volumeKey(name: string | null, level: number | null, muted: bool
 		const top = name !== null ? topName(name) : "";
 		const bottom = showCaption ? label(mode === "level_mute" ? (muted ? "Unmute" : "Mute") : muted ? "Muted" : "Volume", 132, 17, captionColor) : "";
 		return svg(top + gauge + centre + bottom);
+	}
+	if (mode === "set") {
+		const at = level !== null && Math.round(level) === Math.round(preset) && !muted;
+		const tint = level === null ? COLORS.disabled : at ? COLORS.playing : COLORS.accent;
+		const glyph = `<g transform="translate(-14 0)">${speakerGlyph(tint, 1)}</g>` + `<text x="106" y="78" text-anchor="middle" font-family="${FONT}" font-size="30" font-weight="800" fill="${level === null ? COLORS.secondary : COLORS.text}">${Math.round(preset)}</text>`;
+		return glyphKey(glyph, name, showCaption ? `Set to ${Math.round(preset)}%` : null, captionColor);
 	}
 	let glyph: string;
 	if (style === "waves") {
@@ -394,4 +401,26 @@ export function selectKey(playerName: string, state: PlaybackState | undefined, 
 		body += `<rect x="3" y="3" width="138" height="138" rx="14" fill="none" stroke="${COLORS.accent}" stroke-width="6"/>`;
 	}
 	return svg(body);
+}
+
+/** Power: the standby symbol, green while on; grey when the player has no power control. */
+export function powerKey(name: string | null, on: boolean | null, mode: "toggle" | "on" | "off", showCaption = true): string {
+	const color = on === null ? COLORS.disabled : on ? COLORS.playing : COLORS.idle;
+	const glyph = `<path d="M50 44 a32 32 0 1 0 44 0" fill="none" stroke="${color}" stroke-width="9" stroke-linecap="round"/><path d="M72 30 v36" stroke="${color}" stroke-width="9" stroke-linecap="round"/>`;
+	const caption = on === null ? "Power" : mode === "on" ? "Turn on" : mode === "off" ? "Turn off" : on ? "On" : "Off";
+	return glyphKey(glyph, name, showCaption ? caption : null, on === null ? COLORS.secondary : COLORS.text);
+}
+
+/** Skip back or forward: a circular arrow around the number of seconds. */
+export function skipKey(name: string | null, seconds: number, enabled: boolean, showCaption = true): string {
+	const color = enabled ? COLORS.text : COLORS.disabled;
+	const back = seconds < 0;
+	// A circle open at the top, its arrowhead at the top pointing the way it turns:
+	// anticlockwise (left) for back, clockwise (right) for ahead.
+	const mirror = (x: number) => (back ? x : 144 - x);
+	const arc =
+		`<path d="M${mirror(78)} 36 A32 32 0 1 ${back ? 1 : 0} ${mirror(43)} 56" fill="none" stroke="${color}" stroke-width="7" stroke-linecap="round"/>` +
+		`<path d="M${mirror(80)} 25 L${mirror(64)} 36 L${mirror(80)} 47 Z" fill="${color}" stroke="${color}" stroke-width="3" stroke-linejoin="round"/>`;
+	const number = `<text x="72" y="78" text-anchor="middle" font-family="${FONT}" font-size="${Math.abs(seconds) >= 100 ? 22 : 28}" font-weight="800" fill="${color}">${Math.abs(seconds)}</text>`;
+	return glyphKey(arc + number, name, showCaption ? (back ? `Back ${Math.abs(seconds)}s` : `Ahead ${seconds}s`) : null, enabled ? COLORS.text : COLORS.secondary);
 }

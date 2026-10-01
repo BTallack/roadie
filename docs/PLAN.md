@@ -47,6 +47,11 @@ found by mDNS later).
   targets, group mute, older-server artist radio, wrong-address and Bearer-token messages.
   Action list icons made white per Elgato's guidelines; listing assets and copy in
   `docs/marketplace/`. 30 tests.
+- 30 Sep 2026, later: 0.4.0, the audit's suggestions. Server discovery over mDNS (a
+  one-shot legacy-unicast query from `src/ma/discover.ts`, no port 5353 needed; found
+  Brennan's server in 2.5 s), server-side search in the media pickers, Power and Skip keys,
+  and a set-level volume mode. Panels checked in Chrome against a stand-in for the Stream
+  Deck app. 34 tests.
 - Brennan's server: Music Assistant 2.10.4 (schema 65), Home Assistant add-on,
   `http://192.168.1.10:8095`. 17 players (Sonos, three sync groups), 98 playlists across
   Spotify, Apple Music, Plex and Music Assistant's own.

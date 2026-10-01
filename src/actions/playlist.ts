@@ -9,7 +9,7 @@ export class PlaylistAction extends MediaAction {
 	protected readonly kind = "playlist" as const;
 	protected readonly uriKey = "playlistUri" as const;
 	protected readonly listEvent = "getPlaylists";
-	protected choices() {
-		return session.playlists();
+	protected choices(search?: string) {
+		return session.playlists(search);
 	}
 }

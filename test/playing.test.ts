@@ -2,7 +2,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { canTransport, nowPlayingOf, playbackState, volumeOf } from "../src/ma/playing";
+import { canTransport, hasPower, nowPlayingOf, playbackState, volumeOf } from "../src/ma/playing";
 import type { Player, PlayerQueue } from "../src/ma/types";
 
 const player = (extra: Partial<Player> = {}): Player => ({ player_id: "p", provider: "sonos", type: "player", name: "Office", available: true, supported_features: ["pause", "next_previous", "volume_set"], playback_state: "idle", volume_level: 20, ...extra });
@@ -48,4 +48,10 @@ test("transport is allowed through a queue whatever the features say, else by fe
 test("group players carry the group volume", () => {
 	assert.deepEqual(volumeOf(player({ type: "group", volume_level: null, group_volume: 40, group_volume_muted: true })), { level: 40, muted: true, group: true });
 	assert.deepEqual(volumeOf(player({ volume_muted: false })), { level: 20, muted: false, group: false });
+});
+
+test("power: by feature or an attached control; Sonos reports powered but has neither", () => {
+	assert.ok(!hasPower(player({ powered: true, power_control: "none" })), "Sonos");
+	assert.ok(hasPower(player({ supported_features: ["power", "pause"] })), "Chromecast");
+	assert.ok(hasPower(player({ power_control: "homeassistant.switch.amp" })), "a Home Assistant switch attached in Music Assistant");
 });

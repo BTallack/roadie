@@ -17,6 +17,14 @@ export function canTransport(player: Player, queue: PlayerQueue | undefined, fea
 	return player.supported_features.includes(feature);
 }
 
+/**
+ * Whether a player can be turned on and off: it says so in its features, or Music Assistant
+ * has a power control attached to it. Sonos players report `powered` but have neither.
+ */
+export function hasPower(player: Player): boolean {
+	return player.supported_features.includes("power") || (!!player.power_control && player.power_control !== "none");
+}
+
 /** Group players carry `group_volume`; everything else `volume_level`. */
 export function volumeOf(player: Player): { level: number | null; muted: boolean; group: boolean } {
 	const group = player.type === "group" || (player.volume_level == null && player.group_volume != null);

@@ -11,15 +11,19 @@
 	<sdpi-item label="Player">
 		<sdpi-select setting="playerId" datasource="getPlayers" loading="Loading players…" placeholder="Choose a player" hot-reload></sdpi-select>
 	</sdpi-item>
-	<p class="note">Press to play or pause. On a Stream Deck+ dial: turn for volume, press or tap to play or pause.</p>
-	<sdpi-item label="Text">
-		<sdpi-checkbox setting="scroll" label="Scroll a long title or artist" default="true"></sdpi-checkbox>
+	<sdpi-item label="Press">
+		<sdpi-select setting="mode" default="toggle">
+			<option value="toggle">Turn on or off</option>
+			<option value="on">Always turn on</option>
+			<option value="off">Always turn off</option>
+		</sdpi-select>
 	</sdpi-item>
+	<p class="note">For players Music Assistant can switch on and off, such as Chromecast, AirPlay and Home Assistant players. Players without power control, such as Sonos, show the key greyed out.</p>
 	<sdpi-item label="Show">
 		<sdpi-checkbox setting="hideName" label="Hide player name"></sdpi-checkbox>
 	</sdpi-item>
 	<sdpi-item>
-		<sdpi-checkbox setting="hideCaption" label="Hide title and artist, artwork only"></sdpi-checkbox>
+		<sdpi-checkbox setting="hideCaption" label="Hide caption, glyph only"></sdpi-checkbox>
 	</sdpi-item>
 
 	<div class="section">

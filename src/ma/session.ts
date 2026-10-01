@@ -97,6 +97,11 @@ export class Session extends EventEmitter {
 		return this.base;
 	}
 
+	/** Whether a token has been entered at all. */
+	get hasToken(): boolean {
+		return !!this.token;
+	}
+
 	get connected(): boolean {
 		return this.state === "live";
 	}
@@ -345,9 +350,9 @@ export class Session extends EventEmitter {
 		return connection.command<T>(command, args);
 	}
 
-	/** Every library playlist, with its provider's name as the group, sorted for a picker. */
-	playlists(): Promise<MediaChoice[]> {
-		return this.library("playlist", (item, mapping) => (mapping ? (this.providers.get(mapping.provider_instance) ?? mapping.provider_domain) : item.provider));
+	/** Every library playlist (or those matching `search`), with its provider's name as the group. */
+	playlists(search?: string): Promise<MediaChoice[]> {
+		return this.library("playlist", (item, mapping) => (mapping ? (this.providers.get(mapping.provider_instance) ?? mapping.provider_domain) : item.provider), false, undefined, search);
 	}
 
 	/**
@@ -355,28 +360,40 @@ export class Session extends EventEmitter {
 	 * (Digitally Imported's DI.FM, JazzRadio…), otherwise by provider. A station on several
 	 * networks is listed under each.
 	 */
-	radios(): Promise<MediaChoice[]> {
-		return this.library("radio", (item, mapping) => {
-			const network = mapping?.item_id.includes(":") ? RADIO_NETWORKS[mapping.item_id.split(":")[0]] : undefined;
-			return network ?? (mapping ? (this.providers.get(mapping.provider_instance) ?? mapping.provider_domain) : item.provider);
-		}, true);
+	radios(search?: string): Promise<MediaChoice[]> {
+		return this.library(
+			"radio",
+			(item, mapping) => {
+				const network = mapping?.item_id.includes(":") ? RADIO_NETWORKS[mapping.item_id.split(":")[0]] : undefined;
+				return network ?? (mapping ? (this.providers.get(mapping.provider_instance) ?? mapping.provider_domain) : item.provider);
+			},
+			true,
+			undefined,
+			search,
+		);
 	}
 
 	/** Every library album, labelled with its artists, grouped by provider. */
-	albums(): Promise<MediaChoice[]> {
-		return this.library("album", (item, mapping) => (mapping ? (this.providers.get(mapping.provider_instance) ?? mapping.provider_domain) : item.provider), false, (item) => {
-			const artists = item.artists?.map((artist) => artist.name).join(", ");
-			return artists ? `${item.name} — ${artists}` : item.name;
-		});
+	albums(search?: string): Promise<MediaChoice[]> {
+		return this.library(
+			"album",
+			(item, mapping) => (mapping ? (this.providers.get(mapping.provider_instance) ?? mapping.provider_domain) : item.provider),
+			false,
+			(item) => {
+				const artists = item.artists?.map((artist) => artist.name).join(", ");
+				return artists ? `${item.name} — ${artists}` : item.name;
+			},
+			search,
+		);
 	}
 
-	/** Every library artist, grouped by provider; the key turns one into an artist radio. */
-	artists(): Promise<MediaChoice[]> {
-		return this.library("artist", (item, mapping) => (mapping ? (this.providers.get(mapping.provider_instance) ?? mapping.provider_domain) : item.provider));
+	/** Every library artist (or those matching `search`), grouped by provider; the key turns one into an artist radio. */
+	artists(search?: string): Promise<MediaChoice[]> {
+		return this.library("artist", (item, mapping) => (mapping ? (this.providers.get(mapping.provider_instance) ?? mapping.provider_domain) : item.provider), false, undefined, search);
 	}
 
-	private async library(kind: "playlist" | "radio" | "album" | "artist", groupOf: (item: MediaItem, mapping: MediaItem["provider_mappings"] extends (infer M)[] | undefined ? M | undefined : never) => string, everyMapping = false, labelOf?: (item: MediaItem) => string): Promise<MediaChoice[]> {
-		const items = await this.allLibraryItems(kind);
+	private async library(kind: "playlist" | "radio" | "album" | "artist", groupOf: (item: MediaItem, mapping: MediaItem["provider_mappings"] extends (infer M)[] | undefined ? M | undefined : never) => string, everyMapping = false, labelOf?: (item: MediaItem) => string, search?: string): Promise<MediaChoice[]> {
+		const items = await this.allLibraryItems(kind, search?.trim() || undefined);
 		const choices: MediaChoice[] = [];
 		for (const item of items) {
 			if (!item.uri) continue;
@@ -393,10 +410,10 @@ export class Session extends EventEmitter {
 	 * message over about 4 MB, which one request for a few thousand albums would exceed,
 	 * taking every key offline with it. Pages of 500 stay well under (about 0.6 MB).
 	 */
-	private async allLibraryItems(kind: string, pageSize = 500, cap = 20_000): Promise<MediaItem[]> {
+	private async allLibraryItems(kind: string, search?: string, pageSize = 500, cap = 20_000): Promise<MediaItem[]> {
 		const items: MediaItem[] = [];
 		for (let offset = 0; offset < cap; offset += pageSize) {
-			const page = await this.command<MediaItem[]>(`music/${kind}s/library_items`, { limit: pageSize, offset, order_by: "sort_name" });
+			const page = await this.command<MediaItem[]>(`music/${kind}s/library_items`, { limit: pageSize, offset, order_by: "sort_name", ...(search ? { search } : {}) });
 			items.push(...page);
 			if (page.length < pageSize) break;
 		}

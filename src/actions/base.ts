@@ -4,7 +4,7 @@ import type { JsonValue } from "@elgato/utils";
 import { SELECTED } from "../ma/session";
 import type { Player, PlayerQueue } from "../ma/types";
 import { messageKey, withOffline, withTick } from "../render";
-import { connectionSummary, playerItems, rememberDefaults, seedSettings, session } from "../shared";
+import { connectionSummary, findServers, playerItems, rememberDefaults, seedSettings, session, useServer } from "../shared";
 
 /** Every key names the player it's about. */
 export type PlayerSettings = {
@@ -132,6 +132,12 @@ export abstract class PlayerAction<T extends PlayerSettings = PlayerSettings> ex
 			const player = session.player(settings.playerId, ev.action.device.id);
 			const items = (player ? session.groupTargets(player) : session.playerList()).map((target) => ({ label: target.name, value: target.player_id }));
 			await streamDeck.ui.sendToPropertyInspector({ event: "getTargets", items });
+		} else if (payload?.event === "discover") {
+			const servers = await findServers((payload as { fresh?: boolean }).fresh === true);
+			await streamDeck.ui.sendToPropertyInspector({ event: "discovered", servers: servers.map((server) => ({ name: server.name, url: server.url, address: server.url.replace(/^https?:\/\//, ""), version: server.version })) });
+		} else if (payload?.event === "useServer") {
+			const url = (payload as { url?: string }).url;
+			if (typeof url === "string" && /^https?:\/\//.test(url)) useServer(url);
 		} else if (payload?.event === "getConnection") {
 			await streamDeck.ui.sendToPropertyInspector({
 				event: "connection",

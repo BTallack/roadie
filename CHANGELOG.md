@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.4.0 (30 September 2026)
+
+- Finds Music Assistant by itself: "Find on my network" in every settings panel looks for the
+  server over mDNS and saves its address with one click. With no address set yet, the search
+  runs as soon as a panel opens.
+- Search in the playlist, radio, album and artist pickers, done on the server as you type, so
+  libraries of thousands stay usable. The key's current choice stays listed while searching.
+- New Power key: turn a player on or off (toggle, or always on, or always off), for players
+  Music Assistant can switch, such as Chromecast, AirPlay and Home Assistant players.
+- New Skip key: back or ahead by 5 seconds to 5 minutes within the current track, for
+  podcasts and audiobooks. Greyed out for live radio.
+- Volume keys can set a level: press to go to a chosen volume, lit green while there.
+- With an address but no token yet, the panel asks for a token instead of saying it was refused.
+
 ## 0.3.0 (30 September 2026)
 
 Audit before submitting to the Elgato Marketplace.

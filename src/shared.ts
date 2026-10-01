@@ -1,10 +1,11 @@
 import streamDeck from "@elgato/streamdeck";
 import type { JsonValue } from "@elgato/utils";
 
+import { discoverServers, type FoundServer } from "./ma/discover";
 import { SELECTED, Session } from "./ma/session";
 import type { Player } from "./ma/types";
 
-export { canTransport, nowPlayingOf, playbackState, volumeOf, type Playing } from "./ma/playing";
+export { canTransport, hasPower, nowPlayingOf, playbackState, volumeOf, type Playing } from "./ma/playing";
 
 type Settings = Record<string, JsonValue | undefined>;
 
@@ -85,6 +86,24 @@ function saveGlobal(changes: Partial<GlobalSettings>): void {
 		.catch((error) => streamDeck.logger.warn(`couldn't save settings: ${error instanceof Error ? error.message : String(error)}`));
 }
 
+/** Servers found on the network, kept a short while so several open panels share one search. */
+let found: { at: number; servers: Promise<FoundServer[]> } | undefined;
+export function findServers(fresh = false): Promise<FoundServer[]> {
+	if (fresh || !found || Date.now() - found.at > 30_000) found = { at: Date.now(), servers: discoverServers().catch(() => []) };
+	return found.servers;
+}
+
+/** Uses a server picked in the settings panel: saved for every key, connected at once. */
+export function useServer(url: string): void {
+	writing = writing
+		.then(() => streamDeck.settings.getGlobalSettings<GlobalSettings>())
+		.then(async (global) => {
+			await streamDeck.settings.setGlobalSettings({ ...global, url });
+			session.configure(url, global.token);
+		})
+		.catch((error) => streamDeck.logger.warn(`couldn't save the server: ${error instanceof Error ? error.message : String(error)}`));
+}
+
 /** The player picker's entries: the deck's selection first, then every player. */
 export function playerItems(includeSelected = true): Array<{ label: string; value: string }> {
 	const items = session.playerList().map((player) => ({ label: player.type === "group" ? `${player.name} (group)` : player.name, value: player.player_id }));
@@ -110,6 +129,7 @@ export function connectionSummary(): string {
 		case "offline":
 			return `Can't connect: ${session.lastError ?? "no answer"}. Retrying.`;
 		case "unauthorized":
+			if (!session.hasToken) return "Found Music Assistant. Now add a long-lived token below.";
 			return `Music Assistant refused the token: ${session.lastError ?? "check it"}.`;
 	}
 }

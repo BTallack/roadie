@@ -50,6 +50,8 @@ export type Player = {
 	supported_features: PlayerFeature[];
 	playback_state: PlaybackState;
 	powered?: boolean | null;
+	/** The power control attached in Music Assistant's player settings; "none" when there isn't one. */
+	power_control?: string;
 	volume_level?: number | null;
 	volume_muted?: boolean | null;
 	group_volume?: number | null;

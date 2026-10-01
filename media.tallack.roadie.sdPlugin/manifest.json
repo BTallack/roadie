@@ -1,8 +1,8 @@
 {
 	"Name": "Roadie for Music Assistant",
-	"Version": "0.3.0.0",
+	"Version": "0.4.0.0",
 	"Author": "Tallack Media",
-	"Description": "Roadie puts your Music Assistant players on Stream Deck: now playing, play/pause, skip, volume, and keys that load your playlists. Talks straight to your own Music Assistant server.",
+	"Description": "Your Music Assistant players on Stream Deck: now playing, transport, volume, power, and keys that load playlists, stations and albums. Finds and talks straight to your own Music Assistant server.",
 	"URL": "https://github.com/BTallack/roadie",
 	"Category": "Roadie for Music Assistant",
 	"CategoryIcon": "imgs/plugin/category-icon",
@@ -121,7 +121,7 @@
 			"Name": "Volume",
 			"UUID": "media.tallack.roadie.volume",
 			"Icon": "imgs/actions/volume",
-			"Tooltip": "Volume up, volume down, mute, or the current level as a key; on a dial, turn for volume and press to mute.",
+			"Tooltip": "Volume up, down, mute, a set level, or the current level as a key; on a dial, turn for volume and press to mute.",
 			"PropertyInspectorPath": "ui/volume.html",
 			"Controllers": [
 				"Keypad",
@@ -310,6 +310,38 @@
 					"Touch": "Play / pause"
 				}
 			}
+		},
+		{
+			"Name": "Power",
+			"UUID": "media.tallack.roadie.power",
+			"Icon": "imgs/actions/power",
+			"Tooltip": "Turns a player on or off, for players Music Assistant can switch.",
+			"PropertyInspectorPath": "ui/power.html",
+			"Controllers": [
+				"Keypad"
+			],
+			"States": [
+				{
+					"Image": "imgs/actions/power-key",
+					"ShowTitle": false
+				}
+			]
+		},
+		{
+			"Name": "Skip back / ahead",
+			"UUID": "media.tallack.roadie.skip",
+			"Icon": "imgs/actions/skip",
+			"Tooltip": "Skips back or ahead within the current track, for podcasts and audiobooks.",
+			"PropertyInspectorPath": "ui/skip.html",
+			"Controllers": [
+				"Keypad"
+			],
+			"States": [
+				{
+					"Image": "imgs/actions/skip-key",
+					"ShowTitle": false
+				}
+			]
 		}
 	]
 }

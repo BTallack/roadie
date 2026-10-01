@@ -1,7 +1,7 @@
 // Builds the Marketplace scenes from the plugin's own renderer, with generated artwork and
 // invented titles, so nothing in the listing belongs to anyone else.
 import { mkdirSync, writeFileSync } from "node:fs";
-import { groupKey, heartKey, mediaKey, nowPlayingKey, playPauseKey, repeatKey, selectKey, shuffleKey, transferKey, transportKey, volumeKey, withOffline } from "../src/render";
+import { groupKey, heartKey, mediaKey, nowPlayingKey, playPauseKey, powerKey, repeatKey, selectKey, shuffleKey, skipKey, transferKey, transportKey, volumeKey, withOffline } from "../src/render";
 
 const out = "docs/marketplace/src";
 mkdirSync(out, { recursive: true });
@@ -37,6 +37,9 @@ k("vmute", volumeKey("Office", 24, true, "mute"));
 k("vdownS", volumeKey("Office", 24, false, "down", true, "signs"));
 k("vupS", volumeKey("Office", 24, false, "up", true, "signs"));
 k("vlevelOnly", volumeKey("Office", 24, false, "level"));
+k("vset", volumeKey("Office", 30, false, "set", true, "waves", 30));
+k("skip", skipKey("Office", -15, true));
+k("power", powerKey("Living Room", true, "toggle"));
 k("shuffle", shuffleKey("Office", true, true));
 k("repeat", repeatKey("Office", "all", true));
 k("heart", heartKey("Office", true));

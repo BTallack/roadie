@@ -13,7 +13,9 @@ through any other service. It isn't an official Music Assistant project.
 | Play / Pause | Play while paused or idle, pause while playing; grey when the player can't | Toggles |
 | Next / Previous | Skip glyph, lit while something is playing or paused | Skips |
 | Stop | Stop glyph, lit while something is playing or paused | Stops |
-| Volume | One of five, chosen in settings: volume up, volume down, mute (yellow while muted), the current level on an arc, or the level with press-to-mute. Two icon styles: sound waves (one for down, three for up, none for mute, as on Apple keyboards) or plus and minus signs | Steps, mutes, or nothing for the display-only level. On a dial: turn for volume, press to mute |
+| Volume | One of six, chosen in settings: volume up, volume down, mute (yellow while muted), set to a level (green while there), the current level on an arc, or the level with press-to-mute. Two icon styles: sound waves (one for down, three for up, none for mute, as on Apple keyboards) or plus and minus signs | Steps, mutes, sets the level, or nothing for the display-only level. On a dial: turn for volume, press to mute |
+| Skip back / ahead | A circular arrow with the seconds | Moves back or ahead 5 seconds to 5 minutes in the current track. Greyed out for live radio |
+| Power | The standby symbol, green while on | Turns the player on or off (or always on, or always off). For players Music Assistant can switch; Sonos and others without power control show it greyed out |
 | Playlist | The playlist's artwork and name; framed green while the player plays from it, yellow while paused on it | Loads it on the player: replace the queue, play now, play next, or add to the end; shuffle on, off or as the server is set |
 | Radio station | The station's artwork and name, framed the same way. The picker groups stations by network (DI.FM, JazzRadio, RadioTunes…) or provider, favourites first | Loads it on the player, with the same enqueue choices |
 | Album | Artwork and name; the picker lists albums with their artist | Loads it, with enqueue and shuffle choices |
@@ -42,6 +44,13 @@ reports and take the commands it supports.
 The plan and what's next are in [docs/PLAN.md](docs/PLAN.md); what the API allows is in
 [docs/music-assistant-api.md](docs/music-assistant-api.md).
 
+## Setting up
+
+The first time you open any Roadie key's settings, Roadie looks for Music Assistant on your
+network and offers what it finds; choose it, then paste a long-lived token. You can also type
+the address (Music Assistant uses port 8095). Pickers for playlists, stations, albums and
+artists have a search box that searches your library as you type.
+
 ## Install
 
 Download the latest `.streamDeckPlugin` from the [releases page](https://github.com/BTallack/roadie/releases)
@@ -61,7 +70,8 @@ and enter your server's address and a token in the key's settings (once, shared 
 ## Privacy and security
 
 - Roadie talks to one host: the Music Assistant server you enter. Nothing goes to any
-  other service. Artwork comes through the server's own image proxy; the one exception is
+  other service. Finding the server sends one mDNS query on your local network, only when a
+  panel opens with no server set or you press "Find on my network". Artwork comes through the server's own image proxy; the one exception is
   a player that reports a direct image URL for an external source, which is fetched as
   given.
 - The token is kept in Stream Deck's global settings, on disk with the rest of your

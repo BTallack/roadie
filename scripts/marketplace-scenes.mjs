@@ -58,9 +58,9 @@ writeFileSync(`${dir}/src/gallery-3.html`, scene("One row of keys, any room", 'P
 ]));
 
 // 4: volume and rooms.
-writeFileSync(`${dir}/src/gallery-4.html`, scene("Volume, rooms and favourites", "Louder, quieter, mute or the level itself, in two icon styles. Join rooms together, move a queue to another room, and favourite what's playing.", [
-  { gap: 32, html: `${tile("vdown", "Quieter", 190)}${tile("vup", "Louder", 190)}${tile("vmute", "Muted", 190)}${tile("vlevel", "Level, press to mute", 190)}${tile("vdownS", "Signs style", 190)}${tile("vupS", "Signs style", 190)}` },
-  { gap: 32, top: 50, html: `${tile("group", "Join a room", 190)}${tile("transfer", "Move the queue", 190)}${tile("heart", "Favourite", 190)}${tile("shuffle", "Shuffle", 190)}${tile("repeat", "Repeat", 190)}${tile("offline", "Shows when offline", 190)}` },
+writeFileSync(`${dir}/src/gallery-4.html`, scene("Volume, rooms and more", "Louder, quieter, mute, a set level or the level itself, in two icon styles. Join rooms, move a queue, favourite what's playing, skip through podcasts, switch players on and off.", [
+  { gap: 32, html: `${tile("vdown", "Quieter", 190)}${tile("vup", "Louder", 190)}${tile("vmute", "Muted", 190)}${tile("vlevel", "Level, press to mute", 190)}${tile("vset", "Set to a level", 190)}${tile("vupS", "Signs style", 190)}` },
+  { gap: 32, top: 50, html: `${tile("group", "Join a room", 190)}${tile("transfer", "Move the queue", 190)}${tile("heart", "Favourite", 190)}${tile("skip", "Skip back", 190)}${tile("power", "Power", 190)}${tile("offline", "Shows when offline", 190)}` },
 ]));
 
 // App icon, 288 px.

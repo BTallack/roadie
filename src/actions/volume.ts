@@ -10,7 +10,15 @@ type Settings = PlayerSettings & {
 	mode?: VolumeMode;
 	/** Sound waves (one for down, three for up, none for mute) or plus and minus signs. */
 	style?: VolumeStyle;
+	/** The level a "set" key goes to, 0 to 100. */
+	preset?: number | string;
 };
+
+/** A "set" key's level, 30 when unset or unreadable. */
+function presetOf(settings: Settings): number {
+	const value = Number(settings.preset);
+	return Number.isFinite(value) ? Math.max(0, Math.min(100, Math.round(value))) : 30;
+}
 
 /** Mutes a player, or a group as a whole (every member, through the server's group command). */
 function muteCommand(player: Player, muted: boolean): [string, Record<string, unknown>] {
@@ -23,7 +31,7 @@ export class VolumeAction extends PlayerAction<Settings> {
 	protected override async draw({ action, settings, player, name, caption }: KeyContext<Settings>): Promise<void> {
 		const { level, muted } = volumeOf(player);
 		if (action.isKey()) {
-			this.setImage(action, volumeKey(name, level, muted, settings.mode ?? "up", caption, settings.style ?? "waves"));
+			this.setImage(action, volumeKey(name, level, muted, settings.mode ?? "up", caption, settings.style ?? "waves", presetOf(settings)));
 		} else if (action.isDial()) {
 			this.setFeedback(action, {
 				title: player.name,
@@ -41,6 +49,11 @@ export class VolumeAction extends PlayerAction<Settings> {
 		const mode = ev.payload.settings.mode ?? "up";
 		if (level === null) return void (await ev.action.showAlert());
 		if (mode === "level") return;
+		if (mode === "set") {
+			const target = presetOf(ev.payload.settings);
+			await this.run(ev.action, () => session.command(group ? "players/cmd/group_volume" : "players/cmd/volume_set", { player_id: context.player.player_id, volume_level: target }));
+			return;
+		}
 		const [command, args] = mode === "mute" || mode === "level_mute" ? muteCommand(context.player, !muted) : [group ? `players/cmd/group_volume_${mode}` : `players/cmd/volume_${mode}`, { player_id: context.player.player_id }];
 		await this.run(ev.action, () => session.command(command, args));
 	}

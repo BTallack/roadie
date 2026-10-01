@@ -9,7 +9,7 @@ export class AlbumAction extends MediaAction {
 	protected readonly kind = "album" as const;
 	protected readonly uriKey = "albumUri" as const;
 	protected readonly listEvent = "getAlbums";
-	protected choices() {
-		return session.albums();
+	protected choices(search?: string) {
+		return session.albums(search);
 	}
 }

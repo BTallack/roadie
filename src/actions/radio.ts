@@ -9,7 +9,7 @@ export class RadioAction extends MediaAction {
 	protected readonly kind = "radio" as const;
 	protected readonly uriKey = "radioUri" as const;
 	protected readonly listEvent = "getRadios";
-	protected choices() {
-		return session.radios();
+	protected choices(search?: string) {
+		return session.radios(search);
 	}
 }

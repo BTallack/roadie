@@ -18,8 +18,15 @@
 			<option value="mute">Mute / unmute</option>
 			<option value="level">Current volume (display only)</option>
 			<option value="level_mute">Current volume, press to mute</option>
+			<option value="set">Set to a level</option>
 		</sdpi-select>
 	</sdpi-item>
+	<div id="preset-fields" hidden>
+	<sdpi-item label="Level">
+		<sdpi-range setting="preset" min="0" max="100" step="1" default="30" showlabels></sdpi-range>
+	</sdpi-item>
+	<p class="note">Lights green while the player is at this level.</p>
+	</div>
 	<sdpi-item label="Icon style">
 		<sdpi-select setting="style" default="waves">
 			<option value="waves">Sound waves: one for down, three for up, none for mute</option>
@@ -48,6 +55,11 @@
 			<sdpi-item label="Address">
 				<sdpi-textfield setting="url" global placeholder="homeassistant.local:8095"></sdpi-textfield>
 			</sdpi-item>
+			<sdpi-item>
+				<sdpi-button id="find">Find on my network</sdpi-button>
+			</sdpi-item>
+			<p class="find-state" id="find-state" hidden></p>
+			<div id="found"></div>
 			<sdpi-item label="Token">
 				<sdpi-password setting="token" global placeholder="Long-lived access token"></sdpi-password>
 			</sdpi-item>
@@ -57,5 +69,17 @@
 		</div>
 		<p class="note" id="note">Set once and shared by every Roadie key. The plugin talks only to this server, on your network. Make a token in Music Assistant under Settings, Profile, Long-lived access tokens. A user with the guest role is enough; give it a player filter to limit what the deck can reach.</p>
 	</div>
+	<script>
+		// The level slider only matters for "Set to a level".
+		(() => {
+			const client = SDPIComponents.streamDeckClient;
+			const apply = (settings) => (document.getElementById("preset-fields").hidden = !(settings && settings.mode === "set"));
+			client.didReceiveSettings.subscribe((ev) => apply(ev && ev.payload && ev.payload.settings));
+			document.addEventListener("DOMContentLoaded", () => {
+				client.getSettings().then((payload) => apply(payload && payload.settings)).catch(() => {});
+				document.querySelector('sdpi-select[setting="mode"]').addEventListener("valuechange", (ev) => apply({ mode: ev.target.value }));
+			});
+		})();
+	</script>
 </body>
 </html>

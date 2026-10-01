@@ -45,8 +45,9 @@ before(async () => {
 				case "music/albums/library_items":
 					return send([{ name: "Rumours", uri: "library://album/3", provider: "library", artists: [{ name: "Fleetwood Mac" }], provider_mappings: [{ item_id: "x", provider_domain: "spotify", provider_instance: "spotify--1" }] }]);
 				case "music/artists/library_items": {
-					// 1,203 artists, served a page at a time like the real server.
+					// 1,203 artists, served a page at a time like the real server, searchable.
 					artistPages.push(args);
+					if (args.search) return send([{ name: "Fleetwood Mac", uri: "library://artist/9", provider: "library", favorite: true, provider_mappings: [] }].filter((a) => a.name.toLowerCase().includes(String(args.search).toLowerCase())));
 					const all = Array.from({ length: 1203 }, (_, i) => ({ name: i === 0 ? "Fleetwood Mac" : `Artist ${String(i).padStart(4, "0")}`, uri: `library://artist/${i + 9}`, provider: "library", favorite: i === 0, provider_mappings: [{ item_id: `y${i}`, provider_domain: "spotify", provider_instance: "spotify--1" }] }));
 					return send(all.slice(args.offset ?? 0, (args.offset ?? 0) + (args.limit ?? 500)));
 				}
@@ -146,6 +147,10 @@ test("labels albums with their artist and lists artists for artist radio", async
 	assert.equal(artists.length, 1203, "every page fetched");
 	assert.deepEqual(artistPages.map((p) => `${p.offset}+${p.limit}`), ["0+500", "500+500", "1000+500"], "in pages of 500");
 	assert.ok(artists.some((a) => a.name === "Fleetwood Mac" && a.favorite && a.uri === "library://artist/9"));
+	artistPages.length = 0;
+	assert.deepEqual((await session.artists("fleet")).map((a) => a.name), ["Fleetwood Mac"], "search goes to the server");
+	assert.equal((artistPages[0] as { search?: string }).search, "fleet");
+	assert.deepEqual(await session.artists("zzz"), []);
 	session.configure(undefined, undefined);
 });
 
