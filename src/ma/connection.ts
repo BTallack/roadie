@@ -56,6 +56,8 @@ export class Connection extends EventEmitter {
 	serverInfo?: ServerInfo;
 	/** Set once `auth` succeeded. */
 	authenticated = false;
+	/** Who the token belongs to, from the auth answer. */
+	user?: { username?: string; role?: string };
 	/** A refusal the server sent on its own (no users yet), kept so open() can report it. */
 	private refusal?: MusicAssistantError;
 
@@ -119,8 +121,9 @@ export class Connection extends EventEmitter {
 			throw new MusicAssistantError("Music Assistant needs a long-lived token", ERROR_CODES.authenticationRequired);
 		}
 		try {
-			const result = await this.command<{ authenticated?: boolean }>("auth", { token: this.token });
+			const result = await this.command<{ authenticated?: boolean; user?: { username?: string; role?: string } }>("auth", { token: this.token });
 			if (!result?.authenticated) throw new MusicAssistantError("Music Assistant rejected the token", ERROR_CODES.invalidToken);
+			this.user = result.user ? { username: result.user.username, role: result.user.role } : undefined;
 		} catch (error) {
 			this.dispose();
 			// A server with no users answers the info with a 503 and closes before auth can run.
@@ -244,9 +247,17 @@ export async function fetchServerInfo(base: string, timeoutMs = 8_000): Promise<
 		const reason = error instanceof Error ? (error.name === "TimeoutError" ? "timed out" : error.message) : String(error);
 		throw new MusicAssistantError(`Can't reach Music Assistant (${reason})`);
 	}
-	if (!response.ok) throw new MusicAssistantError(`Music Assistant answered HTTP ${response.status}`);
-	const info = (await response.json()) as Partial<ServerInfo>;
-	if (typeof info.server_id !== "string" || typeof info.schema_version !== "number") throw new MusicAssistantError("That isn't a Music Assistant server");
+	// Something answered, but maybe not Music Assistant: Home Assistant's own address (port
+	// 8123) is the usual mix-up, since Music Assistant often runs as its add-on.
+	const notMusicAssistant = `Something answers at ${base.replace(/^https?:\/\//, "")}, but it isn't Music Assistant. Music Assistant normally uses port 8095`;
+	if (!response.ok) throw new MusicAssistantError(response.status === 404 ? notMusicAssistant : `Music Assistant answered HTTP ${response.status}`);
+	let info: Partial<ServerInfo>;
+	try {
+		info = (await response.json()) as Partial<ServerInfo>;
+	} catch {
+		throw new MusicAssistantError(notMusicAssistant);
+	}
+	if (typeof info?.server_id !== "string" || typeof info.schema_version !== "number") throw new MusicAssistantError(notMusicAssistant);
 	return info as ServerInfo;
 }
 

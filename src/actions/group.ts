@@ -12,16 +12,16 @@ type Settings = PlayerSettings & {
 /** Joins the player to a target (or leaves it); lit while grouped. */
 @action({ UUID: "media.tallack.roadie.group" })
 export class GroupAction extends PlayerAction<Settings> {
-	protected override async draw({ action, settings, player, name, caption }: KeyContext<Settings>): Promise<void> {
-		const target = session.player(settings.targetId);
+	protected override async draw({ action, settings, player, name, caption, device }: KeyContext<Settings>): Promise<void> {
+		const target = session.player(settings.targetId, device);
 		const grouped = !!target && session.isGrouped(player, target);
-		await this.setImage(action, groupKey(name, target?.name ?? null, grouped, !!target && player.available && target.available, caption));
+		this.setImage(action, groupKey(name, target?.name ?? null, grouped, !!target && target.player_id !== player.player_id && player.available && target.available, caption));
 	}
 
 	override async onKeyDown(ev: KeyDownEvent<Settings>): Promise<void> {
-		const context = this.context(ev.action.id);
-		const target = session.player(ev.payload.settings.targetId);
-		if (!context || !target || !context.player.available) return void (await ev.action.showAlert());
+		const context = this.context(ev);
+		const target = session.player(ev.payload.settings.targetId, ev.action.device.id);
+		if (!context || !target || target.player_id === context.player.player_id || !context.player.available) return void (await ev.action.showAlert());
 		const grouped = session.isGrouped(context.player, target);
 		await this.run(ev.action, () =>
 			grouped

@@ -27,10 +27,10 @@ export class NowPlayingAction extends PlayerAction<Settings> {
 		if (action.isKey()) {
 			const scroll = settings.scroll !== false;
 			this.animate(action.id, scroll && caption && (overflows(title, 15) || overflows(artist, 13)));
-			await this.setImage(action, nowPlayingKey(name, art, { title, artist, state, available: player.available, progress, caption, scroll }));
+			this.setImage(action, nowPlayingKey(name, art, { title, artist, state, available: player.available, progress, caption, scroll }));
 		} else if (action.isDial()) {
 			const { level } = volumeOf(player);
-			await action.setFeedback({
+			this.setFeedback(action, {
 				title: title ?? player.name,
 				value: artist ?? (title ? player.name : state === "idle" ? "Idle" : ""),
 				icon: artworkURL(art) ?? "imgs/actions/nowplaying",
@@ -40,36 +40,25 @@ export class NowPlayingAction extends PlayerAction<Settings> {
 	}
 
 	override async onKeyDown(ev: KeyDownEvent<Settings>): Promise<void> {
-		await this.playPause(ev.action.id);
+		await this.playPause(ev);
 	}
 
 	override async onDialDown(ev: DialDownEvent<Settings>): Promise<void> {
-		await this.playPause(ev.action.id);
+		await this.playPause(ev);
 	}
 
 	override async onTouchTap(ev: TouchTapEvent<Settings>): Promise<void> {
-		await this.playPause(ev.action.id);
+		await this.playPause(ev);
 	}
 
 	override async onDialRotate(ev: DialRotateEvent<Settings>): Promise<void> {
-		const context = this.context(ev.action.id);
-		if (!context) return;
-		const { level, group } = volumeOf(context.player);
-		if (level === null) return;
-		const target = Math.max(0, Math.min(100, Math.round(level + ev.payload.ticks * 2)));
-		if (group) context.player.group_volume = target;
-		else context.player.volume_level = target;
-		await this.draw(context);
-		await this.run(ev.action, () => session.command(group ? "players/cmd/group_volume" : "players/cmd/volume_set", { player_id: context.player.player_id, volume_level: target }));
+		const context = this.context(ev);
+		if (context) this.turnVolume(context, ev.payload.ticks);
 	}
 
-	private async playPause(id: string): Promise<void> {
-		const context = this.context(id);
-		if (!context || !canTransport(context.player, context.queue, "pause")) {
-			const entry = this.visible.get(id)?.action;
-			if (entry?.isKey() || entry?.isDial()) await entry.showAlert();
-			return;
-		}
-		await this.run(context.action, () => session.command("players/cmd/play_pause", { player_id: context.player.player_id }));
+	private async playPause(ev: KeyDownEvent<Settings> | DialDownEvent<Settings> | TouchTapEvent<Settings>): Promise<void> {
+		const context = this.context(ev);
+		if (!context || !canTransport(context.player, context.queue, "pause")) return void (await ev.action.showAlert());
+		await this.run(ev.action, () => session.command("players/cmd/play_pause", { player_id: context.player.player_id }));
 	}
 }

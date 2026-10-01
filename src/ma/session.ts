@@ -52,8 +52,12 @@ export class Session extends EventEmitter {
 	providers = new Map<string, string>();
 	/** Server clock minus ours, in seconds. */
 	clockOffset = 0;
-	/** The player chosen on this deck, for keys set to follow it. */
-	selectedPlayerId?: string;
+	/** The signed-in Music Assistant user, from the auth answer. */
+	user?: { username?: string; role?: string };
+	/** Each Stream Deck's selected player, for keys set to follow it. */
+	private selected = new Map<string, string>();
+	/** A selection saved before selections were per deck: where decks without their own start. */
+	private fallbackSelection?: string;
 
 	constructor(private readonly log: Logger) {
 		super();
@@ -84,7 +88,8 @@ export class Session extends EventEmitter {
 			this.emit("change");
 			return;
 		}
-		this.token = token?.trim() || undefined;
+		// Pasted tokens sometimes come with the header's "Bearer " in front.
+		this.token = token?.trim().replace(/^bearer\s+/i, "") || undefined;
 		this.start();
 	}
 
@@ -140,6 +145,7 @@ export class Session extends EventEmitter {
 			await connection.open();
 			if (generation !== this.generation) return void connection.close();
 			this.connection = connection;
+			this.user = connection.user;
 			await this.loadState(connection);
 			if (generation !== this.generation) return;
 			this.attempt = 0;
@@ -158,6 +164,9 @@ export class Session extends EventEmitter {
 			if (isAuthError(error)) {
 				this.log.warn(`not authorized: ${this.lastError}`);
 				this.stop();
+				// Keys shouldn't go on showing a house they can no longer reach.
+				this.players.clear();
+				this.queues.clear();
 				this.state = "unauthorized";
 				this.emit("change");
 				return;
@@ -256,31 +265,54 @@ export class Session extends EventEmitter {
 			.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
 	}
 
-	/** A player by id, or the deck's selected player for the `selected` sentinel. */
-	player(id: string | undefined): Player | undefined {
-		if (id === SELECTED) id = this.selectedPlayerId;
+	/** A player by id, or a deck's selected player for the `selected` sentinel. */
+	player(id: string | undefined, device?: string): Player | undefined {
+		if (id === SELECTED) id = this.selectedFor(device);
 		return id ? this.players.get(id) : undefined;
 	}
 
-	/** Changes the deck's selected player; every key following it redraws. */
-	select(id: string | undefined): void {
-		if (id === this.selectedPlayerId) return;
-		this.selectedPlayerId = id;
-		this.emit("selected", id);
+	/** The player a deck has selected (or, before it chose one, the old shared choice). */
+	selectedFor(device: string | undefined): string | undefined {
+		return (device && this.selected.get(device)) || this.fallbackSelection;
+	}
+
+	/** Changes one deck's selected player; every key following it redraws. */
+	select(id: string, device: string): void {
+		if (this.selected.get(device) === id) return;
+		this.selected.set(device, id);
+		this.emit("selected", device);
 		this.emit("change");
 	}
 
-	/** Whether a player is grouped under a target: synced to it, or one of its members. */
+	/** Every deck's selection, for saving. */
+	selections(): Record<string, string> {
+		return Object.fromEntries(this.selected);
+	}
+
+	/** Takes saved selections, keeping any made since (a save may still be on its way). */
+	restoreSelection(saved: Record<string, string>, fallback?: string): void {
+		for (const [device, id] of Object.entries(saved)) if (typeof id === "string" && !this.selected.has(device)) this.selected.set(device, id);
+		if (typeof fallback === "string") this.fallbackSelection = fallback;
+	}
+
+	/**
+	 * Whether a player is grouped with a target. A real player's `group_members` lists who is
+	 * synced to it right now; a group player's lists its members whether or not it's playing,
+	 * so for those only an active group counts.
+	 */
 	isGrouped(player: Player, target: Player): boolean {
 		if (player.player_id === target.player_id) return false;
 		if (player.synced_to === target.player_id || player.active_group === target.player_id) return true;
-		return (target.group_members ?? []).includes(player.player_id);
+		return target.type !== "group" && (target.group_members ?? []).includes(player.player_id);
 	}
 
-	/** Players a player may group with, from the server's `can_group_with` (ids or provider instances). */
+	/**
+	 * Players a player can sync to, from the server's `can_group_with` (player ids or provider
+	 * instances). Group players are left out: joining one changes its saved membership.
+	 */
 	groupTargets(player: Player): Player[] {
 		const allowed = new Set(player.can_group_with ?? []);
-		return this.playerList(true).filter((other) => other.player_id !== player.player_id && (allowed.has(other.player_id) || allowed.has(other.provider) || other.type === "group"));
+		return this.playerList(true).filter((other) => other.player_id !== player.player_id && other.type !== "group" && (allowed.has(other.player_id) || allowed.has(other.provider)));
 	}
 
 	/**
@@ -344,7 +376,7 @@ export class Session extends EventEmitter {
 	}
 
 	private async library(kind: "playlist" | "radio" | "album" | "artist", groupOf: (item: MediaItem, mapping: MediaItem["provider_mappings"] extends (infer M)[] | undefined ? M | undefined : never) => string, everyMapping = false, labelOf?: (item: MediaItem) => string): Promise<MediaChoice[]> {
-		const items = await this.command<MediaItem[]>(`music/${kind}s/library_items`, { limit: 5000, order_by: "sort_name" });
+		const items = await this.allLibraryItems(kind);
 		const choices: MediaChoice[] = [];
 		for (const item of items) {
 			if (!item.uri) continue;
@@ -354,6 +386,21 @@ export class Session extends EventEmitter {
 			for (const group of groups) choices.push({ uri: item.uri, name: item.name, group, favorite: item.favorite === true, label: labelOf?.(item) });
 		}
 		return choices.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }) || a.group.localeCompare(b.group));
+	}
+
+	/**
+	 * A whole library list, a page at a time. Node's WebSocket drops the connection on any
+	 * message over about 4 MB, which one request for a few thousand albums would exceed,
+	 * taking every key offline with it. Pages of 500 stay well under (about 0.6 MB).
+	 */
+	private async allLibraryItems(kind: string, pageSize = 500, cap = 20_000): Promise<MediaItem[]> {
+		const items: MediaItem[] = [];
+		for (let offset = 0; offset < cap; offset += pageSize) {
+			const page = await this.command<MediaItem[]>(`music/${kind}s/library_items`, { limit: pageSize, offset, order_by: "sort_name" });
+			items.push(...page);
+			if (page.length < pageSize) break;
+		}
+		return items;
 	}
 
 	/** One library item by URI, for a key's artwork and name; undefined when it's gone. */

@@ -16,7 +16,7 @@ import { ShuffleAction } from "./actions/shuffle";
 import { StopAction } from "./actions/stop";
 import { TransferAction } from "./actions/transfer";
 import { VolumeAction } from "./actions/volume";
-import { loadDefaults, session, type GlobalSettings } from "./shared";
+import { loadGlobal, session, type GlobalSettings } from "./shared";
 
 // Info, not trace: trace logs every message, and settings messages carry the token.
 streamDeck.logger.setLevel("info");
@@ -26,12 +26,12 @@ for (const action of [new NowPlayingAction(), new PlayPauseAction(), new NextAct
 }
 
 streamDeck.settings.onDidReceiveGlobalSettings<GlobalSettings>((ev) => {
-	loadDefaults(ev.settings);
+	loadGlobal(ev.settings);
 	session.configure(ev.settings.url, ev.settings.token);
 });
 streamDeck.system.onSystemDidWakeUp(() => session.wake());
 
 await streamDeck.connect();
 const settings = await streamDeck.settings.getGlobalSettings<GlobalSettings>();
-loadDefaults(settings);
+loadGlobal(settings);
 session.configure(settings.url, settings.token);

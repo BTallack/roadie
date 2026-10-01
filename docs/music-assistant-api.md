@@ -43,6 +43,11 @@ Commands: `{ message_id, command, args }`. Answers: `{ message_id, result }`, po
 several with `"partial": true` before the last one (large lists), or
 `{ message_id, error_code, details }`. Events: `{ event, object_id, data }`.
 
+Message size: Node's built-in `WebSocket` (undici) drops the connection, code 1006, on any
+single message over about 4 MB. Found 30 Sep 2026: 3,000 tracks (5 MB) closed the socket; the
+`ws` package took it fine. Library lists are therefore fetched 500 at a time (about 0.6 MB
+per page for albums), which keeps every message well under.
+
 There's no application-level heartbeat. `time` (unauthenticated) returns the server's UTC
 timestamp and doubles as a liveness check and clock-offset measurement for progress bars.
 

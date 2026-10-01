@@ -40,6 +40,13 @@ found by mDNS later).
   and sizes before embedding, URL-encoded proxy ids, moved the pure state reads to
   `ma/playing.ts` with tests (26 total). Added CHANGELOG and README privacy notes.
   Released 0.2.0.
+- 30 Sep 2026: pre-Marketplace audit, 0.3.0. Every command checked against the server's own
+  `/api-docs/commands.json`. Fixed: large libraries dropping the socket (4 MB undici limit,
+  now paged), stale keys while offline (badge), multi-actions, a sticking tick, the 10
+  updates/s limit, per-deck selection, per-kind remembered settings, radio favourites, group
+  targets, group mute, older-server artist radio, wrong-address and Bearer-token messages.
+  Action list icons made white per Elgato's guidelines; listing assets and copy in
+  `docs/marketplace/`. 30 tests.
 - Brennan's server: Music Assistant 2.10.4 (schema 65), Home Assistant add-on,
   `http://192.168.1.10:8095`. 17 players (Sonos, three sync groups), 98 playlists across
   Spotify, Apple Music, Plex and Music Assistant's own.

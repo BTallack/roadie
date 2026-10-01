@@ -41,8 +41,16 @@ export abstract class MediaAction extends PlayerAction<MediaSettings> {
 		return uri;
 	}
 
-	/** Items by URI, looked up once for the key's name and art; null when it's gone. */
-	private items = new Map<string, Promise<MediaItem | null>>();
+	/** The play_media arguments that start the chosen item. */
+	protected playArgs(uri: string): Record<string, unknown> {
+		return { media: this.playUri(uri) };
+	}
+
+	/**
+	 * Items by URI, looked up once for the key's name and art: null when the server says it's
+	 * gone, undefined while it can't be asked (offline), which isn't cached.
+	 */
+	private items = new Map<string, Promise<MediaItem | null | undefined>>();
 
 	constructor() {
 		super();
@@ -66,17 +74,18 @@ export abstract class MediaAction extends PlayerAction<MediaSettings> {
 		const enabled = player.available && !!uri && item !== null;
 		const noun = { playlist: "playlist", radio: "station", album: "album", artist: "artist" }[this.kind];
 		const itemName = !uri ? `Choose a ${noun}` : item === null ? `${noun.charAt(0).toUpperCase()}${noun.slice(1)} gone` : (item?.name ?? "…");
-		await this.setImage(action, mediaKey(this.kind, name, art, caption ? itemName : null, playing, enabled, true));
+		this.setImage(action, mediaKey(this.kind, name, art, caption ? itemName : null, playing, enabled, true));
 	}
 
-	private lookup(uri: string): Promise<MediaItem | null> {
+	private lookup(uri: string): Promise<MediaItem | null | undefined> {
 		let pending = this.items.get(uri);
 		if (!pending) {
 			pending = session.item(uri).then(
 				(item) => item ?? null,
 				() => {
+					// Not connected, or a passing error: ask again on the next redraw.
 					this.items.delete(uri);
-					return null;
+					return undefined;
 				},
 			);
 			this.items.set(uri, pending);
@@ -85,11 +94,11 @@ export abstract class MediaAction extends PlayerAction<MediaSettings> {
 	}
 
 	override async onKeyDown(ev: KeyDownEvent<MediaSettings>): Promise<void> {
-		const context = this.context(ev.action.id);
+		const context = this.context(ev);
 		const uri = ev.payload.settings[this.uriKey];
 		const { enqueue, shuffle } = ev.payload.settings;
 		if (!context || !uri || !context.player.available) return void (await ev.action.showAlert());
-		const args: Record<string, unknown> = { queue_id: targetQueue(context.player), media: this.playUri(uri), option: enqueue ?? "replace" };
+		const args: Record<string, unknown> = { queue_id: targetQueue(context.player), ...this.playArgs(uri), option: enqueue ?? "replace" };
 		if ((this.kind === "playlist" || this.kind === "album") && (shuffle === "on" || shuffle === "off")) args.shuffle = shuffle === "on";
 		await this.run(ev.action, () => session.command("player_queues/play_media", args));
 	}

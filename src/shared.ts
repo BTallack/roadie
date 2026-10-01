@@ -6,50 +6,83 @@ import type { Player } from "./ma/types";
 
 export { canTransport, nowPlayingOf, playbackState, volumeOf, type Playing } from "./ma/playing";
 
+type Settings = Record<string, JsonValue | undefined>;
+
 /** Global settings: one Music Assistant server for every key, kept by Stream Deck. */
 export type GlobalSettings = {
 	url?: string;
 	token?: string;
-	/** The last settings a key was given, to start the next new key from. */
-	defaults?: Record<string, JsonValue | undefined>;
-	/** The player chosen on this deck, for keys set to follow it. */
+	/** What new keys start with: the player and name settings shared by every kind, the rest per kind. */
+	defaults?: { shared?: Settings; actions?: Record<string, Settings> } | Settings;
+	/** Each Stream Deck's selected player, by device id. */
+	selectedPlayers?: Record<string, string>;
+	/** Before 0.3: one selection for every deck. Read as the starting point for decks without their own. */
 	selectedPlayerId?: string;
 };
 
-/** Settings that are about one key alone, never carried to a new one. */
-const NOT_REMEMBERED = new Set(["playlistUri", "radioUri", "albumUri", "artistUri", "targetId", "players", "mode"]);
+/** Settings every kind of key shares, so a row of keys for one room takes one pick. */
+const SHARED = new Set(["playerId", "hideName", "hideCaption"]);
 
-let defaults: Record<string, JsonValue | undefined> = {};
+/** Settings about one key alone, never carried to a new one. */
+const NOT_REMEMBERED = new Set(["playlistUri", "radioUri", "albumUri", "artistUri", "targetId", "players"]);
 
-/** Keeps a key's settings as the starting point for the next new key, in memory and in Stream Deck. */
-export function rememberDefaults(settings: Record<string, JsonValue | undefined>): void {
-	const kept = Object.fromEntries(Object.entries(settings).filter(([key, value]) => !NOT_REMEMBERED.has(key) && value !== undefined));
-	if (JSON.stringify({ ...defaults, ...kept }) === JSON.stringify(defaults)) return;
-	defaults = { ...defaults, ...kept };
-	void streamDeck.settings
-		.getGlobalSettings<GlobalSettings>()
-		.then((global) => streamDeck.settings.setGlobalSettings({ ...global, defaults }))
-		.catch((error) => streamDeck.logger.warn(`couldn't save defaults: ${error instanceof Error ? error.message : String(error)}`));
+let shared: Settings = {};
+let byAction: Record<string, Settings> = {};
+
+/** Keeps a key's settings as the starting point for the next new key of its kind. */
+export function rememberDefaults(actionId: string, settings: Settings, sharesPlayer = true): void {
+	const nextShared = { ...shared };
+	const nextOwn = { ...(byAction[actionId] ?? {}) };
+	for (const [key, value] of Object.entries(settings)) {
+		if (value === undefined || NOT_REMEMBERED.has(key)) continue;
+		if (SHARED.has(key)) {
+			if (sharesPlayer) nextShared[key] = value;
+		} else {
+			nextOwn[key] = value;
+		}
+	}
+	if (JSON.stringify(nextShared) === JSON.stringify(shared) && JSON.stringify(nextOwn) === JSON.stringify(byAction[actionId] ?? {})) return;
+	shared = nextShared;
+	byAction = { ...byAction, [actionId]: nextOwn };
+	saveGlobal({ defaults: { shared, actions: byAction } });
 }
 
 /** What a brand-new key starts with. */
-export function seedSettings<T extends Record<string, JsonValue | undefined>>(settings: T): T {
-	return { ...defaults, ...settings } as T;
+export function seedSettings<T extends Settings>(actionId: string, settings: T, sharesPlayer = true): T {
+	return { ...(sharesPlayer ? shared : {}), ...(byAction[actionId] ?? {}), ...settings } as T;
 }
 
 /** Called with the global settings whenever Stream Deck sends them. */
-export function loadDefaults(global: GlobalSettings): void {
-	if (global.defaults && typeof global.defaults === "object") defaults = { ...global.defaults };
-	if (typeof global.selectedPlayerId === "string" && !session.selectedPlayerId) session.selectedPlayerId = global.selectedPlayerId;
+export function loadGlobal(global: GlobalSettings): void {
+	const saved = global.defaults;
+	if (saved && typeof saved === "object") {
+		if ("shared" in saved || "actions" in saved) {
+			shared = { ...((saved as { shared?: Settings }).shared ?? {}) };
+			byAction = { ...((saved as { actions?: Record<string, Settings> }).actions ?? {}) };
+		} else {
+			// Before 0.3 one flat set served every kind of key; keep only what's shared.
+			shared = Object.fromEntries(Object.entries(saved as Settings).filter(([key]) => SHARED.has(key)));
+		}
+	}
+	session.restoreSelection(global.selectedPlayers ?? {}, global.selectedPlayerId);
 }
 
-/** Selects a player for the deck and keeps the choice across restarts. */
-export function selectPlayer(id: string): void {
-	session.select(id);
-	void streamDeck.settings
-		.getGlobalSettings<GlobalSettings>()
-		.then((global) => streamDeck.settings.setGlobalSettings({ ...global, selectedPlayerId: id }))
-		.catch((error) => streamDeck.logger.warn(`couldn't save the selected player: ${error instanceof Error ? error.message : String(error)}`));
+/** Selects a player for one Stream Deck and keeps the choice across restarts. */
+export function selectPlayer(id: string, device: string): void {
+	session.select(id, device);
+	saveGlobal({ selectedPlayers: session.selections() });
+}
+
+/**
+ * Writes some global settings, keeping the rest. Writes are chained so two quick ones
+ * (a selection right after a settings change) can't undo each other.
+ */
+let writing: Promise<unknown> = Promise.resolve();
+function saveGlobal(changes: Partial<GlobalSettings>): void {
+	writing = writing
+		.then(() => streamDeck.settings.getGlobalSettings<GlobalSettings>())
+		.then((global) => streamDeck.settings.setGlobalSettings({ ...global, ...changes }))
+		.catch((error) => streamDeck.logger.warn(`couldn't save settings: ${error instanceof Error ? error.message : String(error)}`));
 }
 
 /** The player picker's entries: the deck's selection first, then every player. */

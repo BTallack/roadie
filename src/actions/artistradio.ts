@@ -16,4 +16,9 @@ export class ArtistRadioAction extends MediaAction {
 	protected override playUri(uri: string): string {
 		return `radio_playlist://playlist/${uri}`;
 	}
+
+	/** Servers before API schema 34 had no radio playlists; they take the artist with `radio_mode`. */
+	protected override playArgs(uri: string): Record<string, unknown> {
+		return (session.serverInfo?.schema_version ?? 0) >= 34 ? { media: this.playUri(uri) } : { media: uri, radio_mode: true };
+	}
 }

@@ -9,3 +9,4 @@ node_modules/
 # Local previews and probe output
 .preview/
 .env
+docs/marketplace/src/

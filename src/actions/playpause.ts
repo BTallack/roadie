@@ -8,11 +8,11 @@ import { PlayerAction, type KeyContext } from "./base";
 @action({ UUID: "media.tallack.roadie.playpause" })
 export class PlayPauseAction extends PlayerAction {
 	protected override async draw({ action, player, queue, name, caption }: KeyContext<never>): Promise<void> {
-		if (action.isKey()) await this.setImage(action, playPauseKey(name, playbackState(player, queue), canTransport(player, queue, "pause"), caption));
+		this.setImage(action, playPauseKey(name, playbackState(player, queue), canTransport(player, queue, "pause"), caption));
 	}
 
 	override async onKeyDown(ev: KeyDownEvent): Promise<void> {
-		const context = this.context(ev.action.id);
+		const context = this.context(ev);
 		if (!context || !canTransport(context.player, context.queue, "pause")) return void (await ev.action.showAlert());
 		await this.run(ev.action, () => session.command("players/cmd/play_pause", { player_id: context.player.player_id }));
 	}

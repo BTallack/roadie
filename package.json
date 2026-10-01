@@ -1,6 +1,6 @@
 {
   "name": "egs-music-assistant",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Stream Deck plugin for Music Assistant: playback controls per player, and keys that load your playlists.",
   "private": true,
   "type": "module",
@@ -8,7 +8,7 @@
   "scripts": {
     "build": "rollup -c",
     "watch": "rollup -c -w --watch.onEnd=\"streamdeck restart media.tallack.roadie\"",
-    "test": "node --import tsx --test test/*.test.ts",
+    "test": "node --import tsx --test --test-timeout=20000 test/*.test.ts",
     "probe": "tsx scripts/probe.ts"
   },
   "devDependencies": {

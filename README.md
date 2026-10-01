@@ -25,9 +25,13 @@ through any other service. It isn't an official Music Assistant project.
 | Move queue | An arrow to the chosen player | Moves the player's queue to that player and carries on there |
 | Select player | A room button: the player's name and what's playing (track then artist, artist then track, station or playlist then track, or nothing), framed while it's the deck's selection. Or, in cycle mode, the current selection with its place in your list (2 / 5, hideable). The player's state shows as a dot above the name or, for more room, as a border around the key | Selects that player for every key set to "Selected on this deck"; in cycle mode, each press moves the selection to the next ticked player. On a dial: turn to step through players, the strip shows the selected one's now playing, press to play or pause |
 
-Every key names its player, or follows the deck's selection ("Selected on this deck", the
+Every key names its player, or follows its deck's selection ("Selected on this deck", the
 first entry in every player picker) so one row of keys can serve whichever room was last
-chosen with a Select player key or dial. The name shows as a small line at the top unless
+chosen with a Select player key or dial. Each Stream Deck keeps its own selection.
+
+While Music Assistant is out of reach (a restart, the computer waking up) keys dim and show a
+small orange badge until the connection is back; Roadie reconnects by itself. Keys work in
+Stream Deck multi-actions too. The name shows as a small line at the top unless
 "Hide player name" is ticked; glyph keys can also drop their caption word, and the now-playing key its title and
 artist. A new key starts with the settings the last key was given (player, hide switches,
 volume mode, enqueue mode), so a row of keys for one room takes one pick.

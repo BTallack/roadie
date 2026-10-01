@@ -13,6 +13,7 @@ const player = (id: string, extra: Record<string, unknown> = {}) => ({ player_id
 const queue = (id: string, extra: Record<string, unknown> = {}) => ({ queue_id: id, active: true, display_name: id, available: true, items: 0, shuffle_enabled: false, repeat_mode: "off", state: "idle", elapsed_time: 0, elapsed_time_last_updated: 0, ...extra });
 
 let server: Server;
+const artistPages: Array<{ limit?: number; offset?: number }> = [];
 let base = "";
 const sockets = new Set<ServerSocket>();
 
@@ -27,23 +28,28 @@ before(async () => {
 		socket.on("close", () => sockets.delete(socket));
 		socket.send(JSON.stringify(INFO));
 		socket.on("message", (data) => {
-			const { message_id, command } = JSON.parse(String(data));
+			const { message_id, command, args } = JSON.parse(String(data));
 			const send = (result: unknown) => socket.send(JSON.stringify({ message_id, result }));
 			switch (command) {
 				case "auth":
-					return send({ authenticated: true });
+					if (args.token !== "good") return socket.send(JSON.stringify({ message_id, error_code: 23, details: "Invalid or expired token" }));
+					return send({ authenticated: true, user: { username: "deck", role: "guest" } });
 				case "time":
 					return send(Date.now() / 1000 + 100);
 				case "players/all":
-					return send([player("Office"), player("Kitchen", { synced_to: "Office", hide_in_ui: true }), player("Web", { private: true }), player("Everywhere", { type: "group", volume_level: null, group_volume: 30, supported_features: [] })]);
+					return send([player("Office", { can_group_with: ["sonos"], group_members: ["Office", "Kitchen"] }), player("Kitchen", { synced_to: "Office", hide_in_ui: true, can_group_with: ["sonos"] }), player("Web", { private: true }), player("Everywhere", { type: "group", provider: "player_group", volume_level: null, group_volume: 30, supported_features: [], group_members: ["Office", "Kitchen", "Bath"] }), player("Bath", { can_group_with: ["sonos"] })]);
 				case "player_queues/all":
 					return send([queue("Office", { state: "playing", sources: [{ uri: "library://playlist/17", name: "Mix" }], current_item: { queue_id: "Office", queue_item_id: "x", name: "Song", duration: 200 }, elapsed_time: 50, elapsed_time_last_updated: Date.now() / 1000 + 100 }), queue("Kitchen"), queue("Everywhere")]);
 				case "providers":
 					return send([{ instance_id: "spotify--1", name: "Spotify", type: "music" }, { instance_id: "apple--1", name: "Apple Music", type: "music" }, { instance_id: "tunein--1", name: "Tune-In Radio", type: "music" }]);
 				case "music/albums/library_items":
 					return send([{ name: "Rumours", uri: "library://album/3", provider: "library", artists: [{ name: "Fleetwood Mac" }], provider_mappings: [{ item_id: "x", provider_domain: "spotify", provider_instance: "spotify--1" }] }]);
-				case "music/artists/library_items":
-					return send([{ name: "Fleetwood Mac", uri: "library://artist/9", provider: "library", favorite: true, provider_mappings: [{ item_id: "y", provider_domain: "spotify", provider_instance: "spotify--1" }] }]);
+				case "music/artists/library_items": {
+					// 1,203 artists, served a page at a time like the real server.
+					artistPages.push(args);
+					const all = Array.from({ length: 1203 }, (_, i) => ({ name: i === 0 ? "Fleetwood Mac" : `Artist ${String(i).padStart(4, "0")}`, uri: `library://artist/${i + 9}`, provider: "library", favorite: i === 0, provider_mappings: [{ item_id: `y${i}`, provider_domain: "spotify", provider_instance: "spotify--1" }] }));
+					return send(all.slice(args.offset ?? 0, (args.offset ?? 0) + (args.limit ?? 500)));
+				}
 				case "music/radios/library_items":
 					return send([
 						{ name: "Bass Jazz", uri: "library://radio/241", provider: "library", favorite: true, provider_mappings: [{ item_id: "jazzradio:bassjazz", provider_domain: "digitally_incorporated", provider_instance: "digitally_incorporated" }] },
@@ -80,9 +86,10 @@ test("loads players, queues and providers, then goes live", async () => {
 	const session = new Session(quiet);
 	session.configure(base, "good");
 	await until(() => session.state === "live");
-	assert.equal(session.players.size, 4);
-	assert.deepEqual(session.playerList().map((p) => p.name), ["Everywhere", "Office"]);
-	assert.deepEqual(session.playerList(true).map((p) => p.name), ["Everywhere", "Kitchen", "Office"]);
+	assert.equal(session.players.size, 5);
+	assert.deepEqual(session.playerList().map((p) => p.name), ["Bath", "Everywhere", "Office"]);
+	assert.deepEqual(session.playerList(true).map((p) => p.name), ["Bath", "Everywhere", "Kitchen", "Office"]);
+	assert.equal(session.user?.role, "guest");
 	assert.ok(Math.abs(session.clockOffset - 100) < 2, "clock offset from the time command");
 	session.configure(undefined, undefined);
 });
@@ -134,23 +141,59 @@ test("labels albums with their artist and lists artists for artist radio", async
 	session.configure(base, "good");
 	await until(() => session.state === "live");
 	assert.deepEqual((await session.albums()).map((a) => `${a.label} [${a.group}]`), ["Rumours — Fleetwood Mac [Spotify]"]);
-	assert.deepEqual((await session.artists()).map((a) => `${a.name}${a.favorite ? "*" : ""} <${a.uri}>`), ["Fleetwood Mac* <library://artist/9>"]);
+	artistPages.length = 0;
+	const artists = await session.artists();
+	assert.equal(artists.length, 1203, "every page fetched");
+	assert.deepEqual(artistPages.map((p) => `${p.offset}+${p.limit}`), ["0+500", "500+500", "1000+500"], "in pages of 500");
+	assert.ok(artists.some((a) => a.name === "Fleetwood Mac" && a.favorite && a.uri === "library://artist/9"));
 	session.configure(undefined, undefined);
 });
 
-test("selection: keys following the deck's player resolve it, grouping is read from sync state", async () => {
+test("each deck has its own selected player; an old shared selection is where decks start", async () => {
 	const session = new Session(quiet);
 	session.configure(base, "good");
 	await until(() => session.state === "live");
-	assert.equal(session.player("selected"), undefined);
+	assert.equal(session.player("selected", "deckA"), undefined);
 	let changes = 0;
 	session.on("selected", () => changes++);
-	session.select("Office");
-	session.select("Office");
+	session.select("Office", "deckA");
+	session.select("Office", "deckA");
 	assert.equal(changes, 1);
-	assert.equal(session.player("selected")?.name, "Office");
-	assert.ok(session.isGrouped(session.player("Kitchen")!, session.player("Office")!));
-	assert.ok(!session.isGrouped(session.player("Office")!, session.player("Kitchen")!));
+	assert.equal(session.player("selected", "deckA")?.name, "Office");
+	assert.equal(session.player("selected", "deckB"), undefined, "another deck is unaffected");
+	session.restoreSelection({ deckA: "Bath", deckB: "Bath" }, "Everywhere");
+	assert.equal(session.player("selected", "deckA")?.name, "Office", "a selection made since a save isn't undone by it");
+	assert.equal(session.player("selected", "deckB")?.name, "Bath");
+	assert.equal(session.player("selected", "deckC")?.name, "Everywhere", "decks without a choice start from the old shared one");
+	assert.deepEqual(session.selections(), { deckA: "Office", deckB: "Bath" });
+	session.configure(undefined, undefined);
+});
+
+test("grouping reads live sync state, never a group player's saved members", async () => {
+	const session = new Session(quiet);
+	session.configure(base, "good");
+	await until(() => session.state === "live");
+	const [office, kitchen, bath, everywhere] = ["Office", "Kitchen", "Bath", "Everywhere"].map((id) => session.player(id)!);
+	assert.ok(session.isGrouped(kitchen, office), "synced to it");
+	assert.ok(!session.isGrouped(office, kitchen));
+	assert.ok(!session.isGrouped(bath, everywhere), "a member of a group player isn't grouped until the group plays");
+	assert.deepEqual(session.groupTargets(bath).map((p) => p.name), ["Kitchen", "Office"], "real players only, no group players");
+	session.configure(undefined, undefined);
+});
+
+test("a refused token stops retrying and forgets the players", async () => {
+	const session = new Session(quiet);
+	session.configure(base, "bad");
+	await until(() => session.state === "unauthorized");
+	assert.equal(session.players.size, 0);
+	assert.match(session.lastError ?? "", /Invalid or expired token/);
+	session.configure(undefined, undefined);
+});
+
+test("a pasted token with the header's Bearer prefix still works", async () => {
+	const session = new Session(quiet);
+	session.configure(base, "Bearer good ");
+	await until(() => session.state === "live");
 	session.configure(undefined, undefined);
 });
 
@@ -160,9 +203,24 @@ test("reconnects after the server drops the socket", async () => {
 	await until(() => session.state === "live");
 	for (const socket of sockets) socket.close(1012, "restart");
 	await until(() => session.state === "offline");
-	assert.equal(session.players.size, 4, "keeps the last state while offline");
+	assert.equal(session.players.size, 5, "keeps the last state while offline");
 	await until(() => session.state === "live", 8000);
 	session.configure(undefined, undefined);
+});
+
+test("an address that answers but isn't Music Assistant says so", async () => {
+	const other = createServer((_request, response) => {
+		response.writeHead(200, { "content-type": "text/html" });
+		response.end("<html>Home Assistant</html>");
+	});
+	await new Promise<void>((resolve) => other.listen(0, "127.0.0.1", resolve));
+	const address = other.address();
+	const session = new Session(quiet);
+	session.configure(`http://127.0.0.1:${typeof address === "object" && address ? address.port : 0}`, "good");
+	await until(() => session.state === "offline");
+	assert.match(session.lastError ?? "", /isn't Music Assistant.*8095/);
+	session.configure(undefined, undefined);
+	other.close();
 });
 
 test("a wrong address is offline, not a crash", async () => {

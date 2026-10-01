@@ -12,15 +12,16 @@ type Settings = PlayerSettings & {
 /** Moves the player's queue to another player, playing on if it was playing. */
 @action({ UUID: "media.tallack.roadie.transfer" })
 export class TransferAction extends PlayerAction<Settings> {
-	protected override async draw({ action, settings, player, queue, name, caption }: KeyContext<Settings>): Promise<void> {
-		const target = session.player(settings.targetId);
-		await this.setImage(action, transferKey(name, target?.name ?? null, !!target && !!queue && queue.items > 0 && target.available && player.available, caption));
+	protected override async draw({ action, settings, player, queue, name, caption, device }: KeyContext<Settings>): Promise<void> {
+		const target = session.player(settings.targetId, device);
+		const enabled = !!target && !!queue && queue.items > 0 && target.player_id !== queue.queue_id && target.available && player.available;
+		this.setImage(action, transferKey(name, target?.name ?? null, enabled, caption));
 	}
 
 	override async onKeyDown(ev: KeyDownEvent<Settings>): Promise<void> {
-		const context = this.context(ev.action.id);
-		const target = session.player(ev.payload.settings.targetId);
-		if (!context?.queue || !target) return void (await ev.action.showAlert());
+		const context = this.context(ev);
+		const target = session.player(ev.payload.settings.targetId, ev.action.device.id);
+		if (!context?.queue || !target || target.player_id === context.queue.queue_id) return void (await ev.action.showAlert());
 		await this.run(ev.action, () => session.command("player_queues/transfer", { source_queue_id: context.queue!.queue_id, target_queue_id: target.player_id }));
 	}
 }
