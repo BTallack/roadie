@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.4.1 (12 November 2026)
 
 - "Find on my network" now asks on every network connection. It used to send every question
   on whichever connection was listed last, so a computer with a VPN, Docker or a virtual
