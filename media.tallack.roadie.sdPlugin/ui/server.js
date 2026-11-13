@@ -6,6 +6,37 @@
 // what it finds; choosing one saves its address for every key. With no address set yet,
 // the search runs by itself when the panel opens.
 (() => {
+	// The section itself, the same in every panel; each panel has a <div id="server"> for it.
+	const SERVER_SECTION = `
+<div class="section">
+	<div class="heading">Music Assistant server</div>
+	<div id="server-summary" hidden>
+		<sdpi-item label="Server">
+			<div class="summary">
+				<div class="text"><span class="server" id="server-name"></span><br /><span class="state"></span></div>
+				<sdpi-button id="change">Change</sdpi-button>
+			</div>
+		</sdpi-item>
+	</div>
+	<div id="server-fields">
+		<sdpi-item label="Address">
+			<sdpi-textfield setting="url" global placeholder="homeassistant.local:8095"></sdpi-textfield>
+		</sdpi-item>
+		<sdpi-item>
+			<sdpi-button id="find">Find on my network</sdpi-button>
+		</sdpi-item>
+		<p class="find-state" id="find-state" hidden></p>
+		<div id="found"></div>
+		<sdpi-item label="Token">
+			<sdpi-password setting="token" global placeholder="Long-lived access token"></sdpi-password>
+		</sdpi-item>
+		<sdpi-item label="Status">
+			<div class="summary"><span class="state">Checking…</span></div>
+		</sdpi-item>
+	</div>
+	<p class="note" id="note">Set once and shared by every Roadie key. The plugin talks only to this server, on your network. Make a token in Music Assistant under Settings, Profile, Long-lived access tokens. A user with the guest role is enough; give it a player filter to limit what the deck can reach.</p>
+</div>`;
+
 	const client = SDPIComponents.streamDeckClient;
 	const $ = (id) => document.getElementById(id);
 	let lastState;
@@ -84,6 +115,7 @@
 	const ask = () => client.send("sendToPlugin", { event: "getConnection" });
 	client.didReceiveGlobalSettings.subscribe(() => setTimeout(ask, 600));
 	document.addEventListener("DOMContentLoaded", () => {
+		$("server").outerHTML = SERVER_SECTION;
 		$("change").addEventListener("click", () => {
 			editing = true;
 			$("server-fields").hidden = false;

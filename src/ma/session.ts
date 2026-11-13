@@ -456,6 +456,7 @@ async function fetchArtwork(url: string): Promise<Artwork | undefined> {
 	// The type goes into a data URL inside the key's SVG, so only a plain image type will do.
 	const type = (response.headers.get("content-type") ?? "image/jpeg").split(";")[0].trim().toLowerCase();
 	if (!/^image\/[a-z0-9.+-]+$/.test(type)) return undefined;
+	if (Number(response.headers.get("content-length")) > 2_000_000) return undefined;
 	const data = Buffer.from(await response.arrayBuffer());
 	if (data.length === 0 || data.length > 2_000_000) return undefined;
 	return { data, type };

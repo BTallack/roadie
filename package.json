@@ -8,7 +8,7 @@
   "scripts": {
     "build": "rollup -c",
     "watch": "rollup -c -w --watch.onEnd=\"streamdeck restart media.tallack.roadie\"",
-    "test": "node --import tsx --test --test-timeout=20000 test/*.test.ts",
+    "test": "node --import tsx --test --test-timeout=20000 --test-force-exit test/*.test.ts",
     "probe": "tsx scripts/probe.ts"
   },
   "devDependencies": {

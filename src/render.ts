@@ -61,8 +61,6 @@ export function overflows(text: string | null | undefined, size: number, width =
 	return !!text && text.length > Math.floor(width / (size * 0.56));
 }
 
-let clipCounter = 0;
-
 /**
  * Text that scrolls when it doesn't fit: holds 2 s, slides left at 24 px/s, holds 1.5 s,
  * starts over. The phase comes from the clock, so redrawing every ~250 ms animates it.
@@ -77,7 +75,8 @@ function marquee(text: string, y: number, size: number, color: string, weight: n
 	const period = hold + slide + 1500;
 	const t = now % period;
 	const offset = t < hold ? 0 : t < hold + slide ? ((t - hold) / slide) * distance : distance;
-	const id = `m${++clipCounter}`;
+	// One id per line: unique within the key, and the same every frame so paused text isn't resent.
+	const id = `m${y}`;
 	return (
 		`<clipPath id="${id}"><rect x="${x0}" y="${y - size}" width="${width}" height="${size * 1.4}"/></clipPath>` +
 		`<text clip-path="url(#${id})" x="${(x0 - offset).toFixed(1)}" y="${y}" text-anchor="start" font-family="${FONT}" font-size="${size}" font-weight="${weight}" fill="${color}">${escape(text)}</text>`

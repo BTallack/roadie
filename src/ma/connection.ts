@@ -53,7 +53,6 @@ export class Connection extends EventEmitter {
 	private socket?: WebSocket;
 	private pending = new Map<string, Pending>();
 	private counter = 0;
-	serverInfo?: ServerInfo;
 	/** Set once `auth` succeeded. */
 	authenticated = false;
 	/** Who the token belongs to, from the auth answer. */
@@ -107,7 +106,6 @@ export class Connection extends EventEmitter {
 			this.dispose();
 			throw error;
 		});
-		this.serverInfo = info;
 		// From here on the normal message handler runs.
 		socket.onmessage = (event) => this.handle(String(event.data));
 		socket.onclose = (event) => this.closed(event.reason || "connection closed");

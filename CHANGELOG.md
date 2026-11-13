@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+- "Find on my network" now asks on every network connection. It used to send every question
+  on whichever connection was listed last, so a computer with a VPN, Docker or a virtual
+  machine could find nothing.
+- Settings panels share one copy of the server section (in `ui/server.js`) instead of twelve.
+- Scrolling titles no longer resend unchanged frames while paused.
+- Oversized artwork is refused before it's downloaded.
+- A failing test now ends the test run instead of hanging it; the key update queue has a test.
+
 ## 0.4.0 (30 September 2026)
 
 - Finds Music Assistant by itself: "Find on my network" in every settings panel looks for the

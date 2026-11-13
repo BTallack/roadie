@@ -129,7 +129,7 @@ function query(ms: number): Promise<Record[]> {
 				// Not a message we can read; others may be.
 			}
 		});
-		socket.bind(0, () => {
+		socket.bind(0, async () => {
 			const query = buildQuery(Math.floor(Math.random() * 0xffff));
 			const addresses = Object.values(networkInterfaces())
 				.flat()
@@ -138,7 +138,8 @@ function query(ms: number): Promise<Record[]> {
 			for (const address of addresses.length ? addresses : [undefined]) {
 				try {
 					if (address) socket.setMulticastInterface(address);
-					socket.send(query, MDNS.port, MDNS.address);
+					// The send completes later; wait, or it leaves on whichever interface is set last.
+					await new Promise((done) => socket.send(query, MDNS.port, MDNS.address, done));
 				} catch {
 					// An interface that can't send multicast; try the next.
 				}

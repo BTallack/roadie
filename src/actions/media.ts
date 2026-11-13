@@ -1,4 +1,4 @@
-import streamDeck, { action as _action, type KeyDownEvent, type SendToPluginEvent } from "@elgato/streamdeck";
+import streamDeck, { type KeyDownEvent, type SendToPluginEvent } from "@elgato/streamdeck";
 import type { JsonValue } from "@elgato/utils";
 
 import type { MediaChoice } from "../ma/session";
@@ -6,8 +6,6 @@ import type { MediaItem, QueueOption } from "../ma/types";
 import { mediaKey, type MediaKind } from "../render";
 import { session, targetQueue } from "../shared";
 import { PlayerAction, type KeyContext, type PlayerSettings } from "./base";
-
-void _action;
 
 export type MediaSettings = PlayerSettings & {
 	/** The playlist's Music Assistant URI, e.g. `library://playlist/17`. */

@@ -4,7 +4,7 @@ import type { JsonValue } from "@elgato/utils";
 import { SELECTED } from "../ma/session";
 import type { Player, PlayerQueue } from "../ma/types";
 import { messageKey, withOffline, withTick } from "../render";
-import { connectionSummary, findServers, playerItems, rememberDefaults, seedSettings, session, useServer } from "../shared";
+import { connectionSummary, findServers, playerItems, rememberDefaults, seedSettings, session, useServer, volumeOf } from "../shared";
 
 /** Every key names the player it's about. */
 export type PlayerSettings = {
@@ -108,11 +108,7 @@ export abstract class PlayerAction<T extends PlayerSettings = PlayerSettings> ex
 		clearTimeout(this.outbox.get(id)?.timer);
 		this.outbox.delete(id);
 		this.retime();
-		this.didDisappear(id);
 	}
-
-	/** For keys with state of their own. */
-	protected didDisappear(_id: string): void {}
 
 	override onDidReceiveSettings(ev: DidReceiveSettingsEvent<T>): void {
 		this.visible.set(ev.action.id, { action: ev.action, settings: ev.payload.settings });
@@ -290,9 +286,8 @@ export abstract class PlayerAction<T extends PlayerSettings = PlayerSettings> ex
 	 */
 	protected turnVolume(context: KeyContext<T>, ticks: number): void {
 		const { player } = context;
-		const group = player.type === "group" || (player.volume_level == null && player.group_volume != null);
-		const level = group ? player.group_volume : player.volume_level;
-		if (level == null) return;
+		const { level, group } = volumeOf(player);
+		if (level === null) return;
 		const target = Math.max(0, Math.min(100, Math.round(level + ticks * 2)));
 		if (group) player.group_volume = target;
 		else player.volume_level = target;
